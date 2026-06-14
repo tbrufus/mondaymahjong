@@ -1483,7 +1483,48 @@ if(typeof fbInit !== 'undefined'){
   if(sub){ sub.textContent = "Connecting to cloud..."; }
 }
 
-render();
+render();  // Email buttons - store URLs globally for onclick access
+  window._em4day = build4DayEmail(session);
+  window._em1day = build1DayEmail(session);
+  window._emnotify = buildNotifyEmail(session);
+  window._emrevision = buildRevisionEmail(session);
+
+  function composeBtn(winKey, label, sub, cls, onSentFn) {
+    var oc = onSentFn ? onSentFn+';' : '';
+    var cbFn = onSentFn ? 'function(){'+onSentFn+'}' : 'null';
+    return '<div class="email-btn '+cls+'" style="display:flex;margin-bottom:12px;cursor:pointer" '
+      +'data-wkey="'+winKey+'" onclick="var k=this.dataset.wkey;'+oc+'showEmailComposer(window[k],'+cbFn+')">'
+      +'<div style="flex:1"><div style="font-size:17px;font-weight:bold;color:#000000">'+label+'</div>'
+      +'<div style="font-size:14px;color:#444">'+sub+'</div></div>'
+      +'<div style="font-size:16px;font-weight:bold;flex-shrink:0;color:#000">Compose &#8594;</div></div>';
+  }
+
+  // 4-day reminder
+  html+='<div style="font-size:17px;font-weight:bold;color:#000000;margin-bottom:6px">4-Day Reminder'+(days===4?' <strong style="color:var(--gold)">&#9889; DUE TODAY</strong>':'')+'</div>';
+  html+=composeBtn('_em4day', '&#128231; Send 4-Day Reminder', 'All members · confirmed count + open spots', days===4?'due':'', '');
+  html+='<div style="height:8px"></div>';
+
+  // Final reminder
+  html+='<div style="font-size:17px;font-weight:bold;color:#000000;margin-bottom:6px">Final Reminder — Day Before'+(days===1?' <strong style="color:var(--gold)">&#9889; DUE TODAY</strong>':'')+sentLabel+'</div>';
+  html+=composeBtn('_em1day', '&#128231; Send Final Reminder', 'All members · final list + who brings set', 'final'+(days===1?' due':''), 'markFinalSent('+session.id+')');
+  html+='<div style="height:8px"></div>';
+
+  // Notify reserve
+  if(seat.spots>0 && D.reserve.length>0){
+    html+='<div style="font-size:17px;font-weight:bold;color:#000000;margin-bottom:6px">'+seat.spots+' spot'+(seat.spots!==1?'s':'')+' open — notify Reserve</div>';
+    html+=composeBtn('_emnotify', '&#128231; Notify Reserve Members', 'First come first served', 'notify', '');
+    html+='<div style="height:8px"></div>';
+  }
+
+  // Revision
+  if(showRevisionAlert===session.id){
+    html+='<div style="background:#fff0f4;border:1px solid #b02848;border-radius:8px;padding:14px;margin-bottom:14px">';
+    html+='<div style="font-size:16px;color:#b02848;font-weight:bold;margin-bottom:8px">&#9888; Player list changed after final email sent</div>';
+    html+=composeBtn('_emrevision', '&#128231; Send Revision Email', 'All members · updated list', '', 'showRevisionAlert=null;render()');
+    html+='</div>';
+  }
+
+  
 </script>
 </body>
 </html>
