@@ -5,6 +5,16 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
+var _fbReady = false;
+var _fbCallbacks = [];
+
+function onFirebaseReady(fn) {
+  if(_fbReady) fn();
+  else _fbCallbacks.push(fn);
+}
+
+window.addEventListener('load', function() {
+  try {
 const firebaseConfig = {
   apiKey: "AIzaSyDQxWf7uuqAU_yIcr75z44g0soOgcE7-6c",
   authDomain: "mahjongmonday-707e6.firebaseapp.com",
@@ -75,6 +85,13 @@ function fbInit(currentData, onData){
     console.log("Firebase connected");
   });
 }
+
+    _fbReady = true;
+    _fbCallbacks.forEach(function(fn){ try{ fn(); }catch(e){} });
+  } catch(e) {
+    console.warn("Firebase setup error:", e.message);
+  }
+});
 </script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -391,6 +408,57 @@ function getSeats(session){
     total,spots:Math.max(0,MAX_PLAYERS-total),full:total>=MAX_PLAYERS};
 }
 
+
+function openEmail(url) {
+  if(url.length > 1800) {
+    var qIdx = url.indexOf('?');
+    var params = new URLSearchParams(url.substring(qIdx+1));
+    var bcc = params.get('bcc') || '';
+    var subject = decodeURIComponent(params.get('subject') || '');
+    var emails = bcc.split(',').join(',\n');
+    // Show modal
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+    overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+    var box = document.createElement('div');
+    box.style.cssText = 'background:white;border-radius:12px;padding:24px;max-width:520px;width:100%';
+    box.innerHTML = '<div style="font-size:18px;font-weight:bold;color:#0a3030;margin-bottom:8px">Copy Member Email Addresses</div>'
+      + '<div style="font-size:14px;color:#555;margin-bottom:8px">Copy these addresses and paste into the BCC field of your email:</div>';
+    var ta = document.createElement('textarea');
+    ta.value = emails;
+    ta.readOnly = true;
+    ta.style.cssText = 'width:100%;height:120px;border:2px solid #88c8c8;border-radius:6px;padding:8px;font-size:13px;color:#000;box-sizing:border-box;font-family:monospace';
+    ta.onclick = function(){ this.select(); };
+    box.appendChild(ta);
+    var sub = document.createElement('div');
+    sub.style.cssText = 'font-size:14px;color:#333;margin:10px 0 14px';
+    sub.innerHTML = '<strong>Subject:</strong> ' + subject;
+    box.appendChild(sub);
+    var btns = document.createElement('div');
+    btns.style.cssText = 'display:flex;gap:10px';
+    var copyBtn = document.createElement('button');
+    copyBtn.textContent = 'Copy Addresses';
+    copyBtn.style.cssText = 'flex:1;padding:11px;background:#1a7878;color:white;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-family:Georgia,serif';
+    copyBtn.onclick = function(){
+      ta.select();
+      try{ navigator.clipboard.writeText(ta.value).then(function(){ copyBtn.textContent='Copied!'; }); }
+      catch(e){ document.execCommand('copy'); copyBtn.textContent='Copied!'; }
+    };
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.style.cssText = 'padding:11px 18px;background:#eee;color:#333;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-family:Georgia,serif';
+    closeBtn.onclick = function(){ overlay.remove(); };
+    btns.appendChild(copyBtn);
+    btns.appendChild(closeBtn);
+    box.appendChild(btns);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  } else {
+    window.location.href = url;
+  }
+}
+
+
 function allEmails(){return[...D.core,...D.reserve].map(m=>m.email).filter(Boolean).join(",")}
 
 
@@ -409,7 +477,7 @@ function buildRevisionEmail(s){
   const wl=seat.sessionWaitlist.length>0?"\nSession waitlist: "+seat.sessionWaitlist.map((m,i)=>"#"+(i+1)+" "+m.name).join(", "):"";
   const subj=encodeURIComponent("REVISED: Mahjong Monday - "+toDateStr(s.date)+" Player List Update");
   const body=encodeURIComponent("Hi everyone,\n\nThere has been a change to tomorrow's player list."+setLine+"\n\nUPDATED PLAYERS ("+seat.total+"/"+MAX_PLAYERS+"):\n  \u2022 "+(names||"None confirmed")+wl+"\n\nMonday Mahjong GCAI: https://tbrufus.github.io/mondaymahjong/\n\nApologies for any confusion - see you tomorrow!");
-  return "mailto:"+allEmails()+"?subject="+subj+"&body="+body;
+  return "mailto:tbrufus@gmail.com?bcc="+allEmails()+"&subject="+subj+"&body="+body;
 }
 
 function markFinalSent(sessId){
@@ -421,7 +489,7 @@ function build4DayEmail(s){
   const waitLine=seat.spots>0?"\n\u26a1 "+seat.spots+" spot"+(seat.spots!==1?"s":"")+" still open \u2014 first to confirm gets in!":"\nSession is FULL.";
   const subj=encodeURIComponent("Monday Mah Jongg at GCAI - Are you playing?");
   const body=encodeURIComponent("Hi everyone,\n\nReminder: Mahjong this "+toDateStr(s.date)+" at "+s.time+(s.location?"\nLocation: "+s.location:"")+"."+"\n\nWe currently have "+seat.total+" of "+MAX_PLAYERS+" players confirmed."+waitLine+"\n\nPlease update your status here:\nhttps://tbrufus.github.io/mondaymahjong/\n\nSee you Monday! \ud83c\udc04");
-  return "mailto:"+allEmails()+"?subject="+subj+"&body="+body;
+  return "mailto:tbrufus@gmail.com?bcc="+allEmails()+"&subject="+subj+"&body="+body;
 }
 function quickAutoAssign(sessId){
   var session = D.sessions.find(function(s){ return s.id == sessId; });
@@ -492,7 +560,7 @@ function build1DayEmail(s){
 
   const subj=encodeURIComponent("Monday Mah Jong at GCAI - Who is playing");
   const body=encodeURIComponent("Hi everyone,\n\nWe're playing tomorrow — "+toDateStr(s.date)+" at "+s.time+(s.location?"\nLocation: "+s.location:"")+"."+setLine+"\n\nTomorrow's players ("+seat.total+"/"+MAX_PLAYERS+"):\n"+playerList+"\n\nIf you need to cancel at last minute or join to fill available seats, click the link below.\n"+APP_URL+"\n\nSee you tomorrow! \ud83c\udc04");
-  return "mailto:"+allEmails()+"?subject="+subj+"&body="+body;
+  return "mailto:tbrufus@gmail.com?bcc="+allEmails()+"&subject="+subj+"&body="+body;
 }
 function buildNotifyEmail(s){
   const seat=getSeats(s);
@@ -1202,11 +1270,11 @@ function renderEmail(main){
 
   // Email buttons
   function emailBtn(href, label, sub, colorClass, onclick){
-    var oc = onclick ? ' onclick="'+onclick+'"' : '';
-    return '<a href="'+href+'" class="email-btn '+colorClass+'" style="display:flex;margin-bottom:12px;text-decoration:none"'+oc+'>'
+    var extra = onclick ? onclick+';' : '';
+    return '<div class="email-btn '+colorClass+'" style="display:flex;margin-bottom:12px;cursor:pointer" onclick="'+extra+'openEmail(\'' + href.replace(/'/g,"\\'") + '\')">'
       +'<div style="flex:1"><div style="font-size:17px;font-weight:bold;color:#000000">'+label+'</div>'
       +'<div style="font-size:14px;color:#444444">'+sub+'</div></div>'
-      +'<div style="font-size:16px;font-weight:bold;flex-shrink:0;color:#000000">Open Mail &#8594;</div></a>';
+      +'<div style="font-size:16px;font-weight:bold;flex-shrink:0;color:#000000">Open Mail &#8594;</div></div>';
   }
 
   // 4-day reminder
