@@ -1239,56 +1239,7 @@ function renderMembers(main){
   main.innerHTML=html;
 }
 
-function renderEmail(main){
-  var html='';
-
-  // Session picker
-  var upcoming = D.sessions.filter(isUpcoming);
-  html+='<div style="margin-bottom:18px">';
-  html+='<div style="font-size:17px;font-weight:bold;color:#000000;margin-bottom:8px">Select Session</div>';
-  html+='<select class="bringset-select" style="width:100%;font-size:16px;padding:10px" onchange="emailSessionId=this.value?Number(this.value):null;render()">';
-  html+='<option value="">— Choose a session —</option>';
-  upcoming.forEach(function(s){
-    var selected = emailSessionId && s.id == emailSessionId ? ' selected' : '';
-    html+='<option value="'+s.id+'"'+selected+'>'+toDateStr(s.date)+' · '+s.time+'</option>';
-  });
-  html+='</select>';
-  html+='</div>';
-
-  if(!emailSessionId){
-    html+='<div class="empty-state" style="padding:40px">Select a session above to see email options</div>';
-    main.innerHTML=html;
-    return;
-  }
-
-  var session = D.sessions.find(function(s){ return s.id == emailSessionId; });
-  if(!session){ main.innerHTML=html; return; }
-
-  var seat = getSeats(session);
-  var days = daysUntil(session.date);
-  var sentLabel = session.finalEmailSent ? ' <span style="color:#0a6035;font-size:14px">&#10003; Sent</span>' : '';
-
-  // Session summary
-  html+='<div style="background:#eaf8f8;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:18px">';
-  html+='<div style="font-size:17px;font-weight:bold;color:#000000">'+toDateStr(session.date)+'</div>';
-  html+='<div style="font-size:15px;color:#333333">'+session.time+(session.location?' · '+session.location:'')+'</div>';
-  html+='<div style="font-size:15px;color:#333333;margin-top:4px">'+seat.total+'/'+MAX_PLAYERS+' confirmed · '+seat.spots+' open</div>';
-  html+='</div>';
-
-  // Revision alert
-  if(showRevisionAlert === session.id){
-    html+='<div style="background:#fff0f4;border:1px solid #b02848;border-radius:8px;padding:14px;margin-bottom:14px">';
-    html+='<div style="font-size:16px;color:#b02848;font-weight:bold;margin-bottom:6px">&#9888; Player list changed after final email sent</div>';
-    html+='<div style="font-size:14px;color:#884444;margin-bottom:10px">Send a revision email to notify all members.</div>';
-    html+='<a href="'+buildRevisionEmail(session)+'" class="email-btn" style="border-color:#b02848;background:#fff8fa;display:flex" onclick="showRevisionAlert=null;render()">';
-    html+='<div style="flex:1"><div style="font-size:17px;color:#b02848;font-weight:bold">&#128231; Send Revision</div>';
-    html+='<div style="font-size:14px;color:#884444">All members · updated list</div></div>';
-    html+='<div style="font-size:16px;color:#b02848;font-weight:bold;flex-shrink:0">Open Mail &#8594;</div></a>';
-    html+='</div>';
-  }
-
-  // Email buttons
-  function showEmailComposer(url, onSent) {
+function showEmailComposer(url, onSent) {
   var qIdx = url.indexOf('?');
   var params = new URLSearchParams(url.substring(qIdx+1));
   var bcc = params.get('bcc') || '';
@@ -1425,24 +1376,6 @@ function emailBtn(href, label, sub, colorClass, onclick){
       +'<div style="font-size:14px;color:#444444">'+sub+'</div></div>'
       +'<div style="font-size:16px;font-weight:bold;flex-shrink:0;color:#000000">Compose &#8594;</div></div>';
   }
-  html+='<div style="font-size:17px;font-weight:bold;color:#000000;margin-bottom:6px">4-Day Reminder'+(days===4?' <strong style="color:var(--gold)">&#9889; DUE TODAY</strong>':'')+'</div>';
-  html+=emailBtn(build4DayEmail(session), '&#128231; Send 4-Day Reminder', 'All members · confirmed list + open spots', days===4?'due':'', '');
-  html+='<div style="height:8px"></div>';
-
-  // Final reminder
-  html+='<div style="font-size:17px;font-weight:bold;color:#000000;margin-bottom:6px">Final Reminder — Day Before'+(days===1?' <strong style="color:var(--gold)">&#9889; DUE TODAY</strong>':'')+sentLabel+'</div>';
-  html+=emailBtn(build1DayEmail(session), '&#128231; Send Final Reminder', 'All members · final list + who brings set', 'final'+(days===1?' due':''), 'markFinalSent('+session.id+')');
-  html+='<div style="height:8px"></div>';
-
-  // Notify reserve
-  if(seat.spots>0 && D.reserve.length>0){
-    html+='<div style="font-size:17px;font-weight:bold;color:#000000;margin-bottom:6px">'+seat.spots+' spot'+(seat.spots!==1?'s':'')+' open — notify Reserve</div>';
-    html+=emailBtn(buildNotifyEmail(session), '&#128231; Notify Reserve Members', 'First come first served', 'notify', '');
-    html+='<div style="height:8px"></div>';
-  }
-
-  main.innerHTML=html;
-}
 
 function switchView(v){
   view=v; selId=null; showNew=false; showRecurring=false;
@@ -1489,6 +1422,56 @@ render();  // Email buttons - store URLs globally for onclick access
   window._emnotify = buildNotifyEmail(session);
   window._emrevision = buildRevisionEmail(session);
 
+
+function renderEmail(main){
+  var html='';
+
+  // Session picker
+  var upcoming = D.sessions.filter(isUpcoming);
+  html+='<div style="margin-bottom:18px">';
+  html+='<div style="font-size:17px;font-weight:bold;color:#000000;margin-bottom:8px">Select Session</div>';
+  html+='<select class="bringset-select" style="width:100%;font-size:16px;padding:10px" onchange="emailSessionId=this.value?Number(this.value):null;render()">';
+  html+='<option value="">— Choose a session —</option>';
+  upcoming.forEach(function(s){
+    var selected = emailSessionId && s.id == emailSessionId ? ' selected' : '';
+    html+='<option value="'+s.id+'"'+selected+'>'+toDateStr(s.date)+' · '+s.time+'</option>';
+  });
+  html+='</select>';
+  html+='</div>';
+
+  if(!emailSessionId){
+    html+='<div class="empty-state" style="padding:40px">Select a session above to see email options</div>';
+    main.innerHTML=html;
+    return;
+  }
+
+  var session = D.sessions.find(function(s){ return s.id == emailSessionId; });
+  if(!session){ main.innerHTML=html; return; }
+
+  var seat = getSeats(session);
+  var days = daysUntil(session.date);
+  var sentLabel = session.finalEmailSent ? ' <span style="color:#0a6035;font-size:14px">&#10003; Sent</span>' : '';
+
+  // Session summary
+  html+='<div style="background:#eaf8f8;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:18px">';
+  html+='<div style="font-size:17px;font-weight:bold;color:#000000">'+toDateStr(session.date)+'</div>';
+  html+='<div style="font-size:15px;color:#333333">'+session.time+(session.location?' · '+session.location:'')+'</div>';
+  html+='<div style="font-size:15px;color:#333333;margin-top:4px">'+seat.total+'/'+MAX_PLAYERS+' confirmed · '+seat.spots+' open</div>';
+  html+='</div>';
+
+  // Revision alert
+  if(showRevisionAlert === session.id){
+    html+='<div style="background:#fff0f4;border:1px solid #b02848;border-radius:8px;padding:14px;margin-bottom:14px">';
+    html+='<div style="font-size:16px;color:#b02848;font-weight:bold;margin-bottom:6px">&#9888; Player list changed after final email sent</div>';
+    html+='<div style="font-size:14px;color:#884444;margin-bottom:10px">Send a revision email to notify all members.</div>';
+    html+='<a href="'+buildRevisionEmail(session)+'" class="email-btn" style="border-color:#b02848;background:#fff8fa;display:flex" onclick="showRevisionAlert=null;render()">';
+    html+='<div style="flex:1"><div style="font-size:17px;color:#b02848;font-weight:bold">&#128231; Send Revision</div>';
+    html+='<div style="font-size:14px;color:#884444">All members · updated list</div></div>';
+    html+='<div style="font-size:16px;color:#b02848;font-weight:bold;flex-shrink:0">Open Mail &#8594;</div></a>';
+    html+='</div>';
+  }
+
+  // Email buttons
   function composeBtn(winKey, label, sub, cls, onSentFn) {
     var oc = onSentFn ? onSentFn+';' : '';
     var cbFn = onSentFn ? 'function(){'+onSentFn+'}' : 'null';
@@ -1525,6 +1508,7 @@ render();  // Email buttons - store URLs globally for onclick access
   }
 
   
+}
 </script>
 </body>
 </html>
