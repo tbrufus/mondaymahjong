@@ -459,6 +459,12 @@ function openEmail(url) {
 }
 
 
+function confirmedEmails(seat){
+  var members = [...D.core,...D.reserve];
+  var confirmedIds = [...seat.coreYes,...seat.confirmedReserve].map(function(m){return m.id;});
+  return members.filter(function(m){ return confirmedIds.includes(m.id) && m.email; }).map(function(m){return m.email;}).join(",");
+}
+
 function allEmails(){return[...D.core,...D.reserve].map(m=>m.email).filter(Boolean).join(",")}
 
 
@@ -543,25 +549,38 @@ function autoAssignSetsForSession(session){
 }
 function build1DayEmail(s){
   const seat=getSeats(s);
+  const allM=[...D.core,...D.reserve];
 
-  // Player list - core + confirmed reserve
-  const players=[...seat.coreYes.map(m=>m.name),...seat.confirmedReserve.map(m=>m.name+" (reserve)")];
-  const playerList=players.map(n=>"  • "+n).join("\n");
+  // Get emails of ALL members (everyone needs to know)
+  const toEmails=allM.filter(function(m){return m.email;}).map(function(m){return m.email;});
 
-  // Auto-assign sets from registered members
+  // Auto-assign sets
   const sets=autoAssignSetsForSession(s);
   if(sets.length>0 && JSON.stringify(sets)!==JSON.stringify(s.bringSet)){
     s.bringSet=sets;
-    var idx=D.sessions.findIndex(function(x){return x.id==s.id;});
-    if(idx>=0) D.sessions[idx].bringSet=sets;
+    var sidx=D.sessions.findIndex(function(x){return x.id==s.id;});
+    if(sidx>=0) D.sessions[sidx].bringSet=sets;
     saveData();
   }
-  const setLine=sets.length?"\n\ud83c\udc04 Who is bringing a Mahjong set:\n"+sets.map((n,i)=>"  Table "+(i+1)+": "+n+" — thank you!").join("\n"):"\n\ud83c\udc04 Sets: Not yet assigned";
+
+  const players=[...seat.coreYes.map(function(m){return m.name;}),...seat.confirmedReserve.map(function(m){return m.name+" (reserve)";})];
+  const playerList=players.map(function(n){return "  • "+n;}).join("\n");
+  const setLine=sets.length?"\nMahjong sets:\n"+sets.map(function(n,i){return "  Table "+(i+1)+": "+n+" - thank you!";}).join("\n"):"\nSets: not yet assigned";
 
   const subj=encodeURIComponent("Monday Mah Jong at GCAI - Who is playing");
-  const body=encodeURIComponent("Hi everyone,\n\nWe're playing tomorrow — "+toDateStr(s.date)+" at "+s.time+(s.location?"\nLocation: "+s.location:"")+"."+setLine+"\n\nTomorrow's players ("+seat.total+"/"+MAX_PLAYERS+"):\n"+playerList+"\n\nIf you need to cancel at last minute or join to fill available seats, click the link below.\n"+APP_URL+"\n\nSee you tomorrow! \ud83c\udc04");
-  return "mailto:tbrufus@gmail.com?bcc="+allEmails()+"&subject="+subj+"&body="+body;
+  const body=encodeURIComponent(
+    "Hi everyone,\n\n"
+    +"We're playing tomorrow - "+toDateStr(s.date)+" at "+s.time+(s.location?"\nLocation: "+s.location:"")+"."
+    +setLine
+    +"\n\nTomorrow's players ("+seat.total+"/"+MAX_PLAYERS+"):\n"+playerList
+    +"\n\nIf you need to cancel at last minute or join to fill available seats, click the link below.\n"
+    +APP_URL
+    +"\n\nSee you tomorrow!"
+  );
+
+  return "mailto:tbrufus@gmail.com?bcc="+toEmails.join(",")+"&subject="+subj+"&body="+body;
 }
+
 function buildNotifyEmail(s){
   const seat=getSeats(s);
   const pending=D.reserve.filter(m=>s.rsvps[m.id]?.status!=="yes");
