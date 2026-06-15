@@ -1417,13 +1417,7 @@ if(typeof fbInit !== 'undefined'){
 }
 
 render();  // Email buttons - store URLs globally for onclick access
-  window._em4day = build4DayEmail(session);
-  window._em1day = build1DayEmail(session);
-  window._emnotify = buildNotifyEmail(session);
-  window._emrevision = buildRevisionEmail(session);
-
-
-function renderEmail(main){
+  function renderEmail(main){
   var html='';
 
   // Session picker
@@ -1449,6 +1443,12 @@ function renderEmail(main){
   if(!session){ main.innerHTML=html; return; }
 
   var seat = getSeats(session);
+
+  // Store email URLs globally for onclick access
+  window._em4day = build4DayEmail(session);
+  window._em1day = build1DayEmail(session);
+  window._emnotify = buildNotifyEmail(session);
+  window._emrevision = buildRevisionEmail(session);
   var days = daysUntil(session.date);
   var sentLabel = session.finalEmailSent ? ' <span style="color:#0a6035;font-size:14px">&#10003; Sent</span>' : '';
 
