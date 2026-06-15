@@ -683,6 +683,7 @@ function deleteSession(id){
 function setRSVP(sessId,memberId,status){
   const s=D.sessions.find(s=>s.id==sessId);
   if(!s)return;
+  if(!s.rsvps)s.rsvps={};
   s.rsvps[memberId]={status,timestamp:Date.now()};
   // Auto-promote from session waitlist if spots opened
   autoPromote(s);
@@ -1238,6 +1239,171 @@ function renderMembers(main){
 
   main.innerHTML=html;
 }
+
+function showEmailComposer(url, onSent) {
+  if(!url) { alert("No email data. Please select a session first."); return; }
+  var qIdx = url.indexOf("?");
+  var params = new URLSearchParams(url.substring(qIdx+1));
+  var bcc = params.get("bcc") || "";
+  var subject = decodeURIComponent(params.get("subject") || "");
+  var body = decodeURIComponent(params.get("body") || "");
+  var emails = bcc.split(",").filter(Boolean);
+
+  var overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:20px;box-sizing:border-box;overflow-y:auto";
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  var box = document.createElement("div");
+  box.style.cssText = "background:white;border-radius:12px;padding:24px;max-width:600px;width:100%;margin:auto;margin-top:20px";
+
+  var title = document.createElement("div");
+  title.style.cssText = "font-size:20px;font-weight:bold;color:#0a3030;margin-bottom:12px";
+  title.textContent = "Send Email";
+  box.appendChild(title);
+
+  var instr = document.createElement("div");
+  instr.style.cssText = "background:#eaf8f8;border-radius:8px;padding:12px;font-size:14px;color:#333;margin-bottom:16px;line-height:1.7";
+  instr.innerHTML = "<strong>Steps:</strong><br>1. Tap Copy Addresses &rarr; paste into BCC in Gmail<br>2. Tap Open Gmail &rarr; subject &amp; body are pre-filled<br>3. Paste addresses into BCC field &rarr; Send<br>4. Come back &rarr; tap Mark as Sent";
+  box.appendChild(instr);
+
+  // BCC addresses
+  var lbl1 = document.createElement("div");
+  lbl1.style.cssText = "font-size:14px;font-weight:bold;color:#0a3030;margin-bottom:4px";
+  lbl1.textContent = "BCC: " + emails.length + " members";
+  box.appendChild(lbl1);
+
+  var ta = document.createElement("textarea");
+  ta.value = emails.join(", ");
+  ta.readOnly = true;
+  ta.style.cssText = "width:100%;height:80px;border:2px solid #88c8c8;border-radius:6px;padding:8px;font-size:13px;color:#000;box-sizing:border-box;font-family:monospace;margin-bottom:6px";
+  ta.onclick = function(){ this.select(); };
+  box.appendChild(ta);
+
+  function makeBtn(text, bg, fn) {
+    var b = document.createElement("button");
+    b.textContent = text;
+    b.style.cssText = "padding:9px 16px;background:"+bg+";color:white;border:none;border-radius:6px;font-size:14px;cursor:pointer;font-family:Georgia,serif;margin-bottom:14px;margin-right:8px";
+    b.onclick = fn;
+    return b;
+  }
+
+  box.appendChild(makeBtn("Copy Addresses", "#1a7878", function(){
+    ta.select();
+    try{ navigator.clipboard.writeText(ta.value).then(function(){ ta.style.background="#eaf8f8"; setTimeout(function(){ ta.style.background=""; },1500); }); }
+    catch(e){ document.execCommand("copy"); }
+  }));
+
+  // Subject
+  var lbl2 = document.createElement("div");
+  lbl2.style.cssText = "font-size:14px;font-weight:bold;color:#0a3030;margin-bottom:4px";
+  lbl2.textContent = "Subject:";
+  box.appendChild(lbl2);
+
+  var si = document.createElement("input");
+  si.type = "text"; si.value = subject; si.readOnly = true;
+  si.style.cssText = "width:100%;border:2px solid #88c8c8;border-radius:6px;padding:8px;font-size:14px;color:#000;box-sizing:border-box;margin-bottom:6px";
+  si.onclick = function(){ this.select(); };
+  box.appendChild(si);
+
+  // Body
+  var lbl3 = document.createElement("div");
+  lbl3.style.cssText = "font-size:14px;font-weight:bold;color:#0a3030;margin-bottom:4px";
+  lbl3.textContent = "Email body:";
+  box.appendChild(lbl3);
+
+  var ba = document.createElement("textarea");
+  ba.value = body; ba.readOnly = true;
+  ba.style.cssText = "width:100%;height:200px;border:2px solid #88c8c8;border-radius:6px;padding:8px;font-size:14px;color:#000;box-sizing:border-box;font-family:Arial,sans-serif;margin-bottom:6px";
+  ba.onclick = function(){ this.select(); };
+  box.appendChild(ba);
+
+  box.appendChild(makeBtn("Copy Body", "#1a7878", function(){
+    ba.select();
+    try{ navigator.clipboard.writeText(ba.value).then(function(){ ba.style.background="#eaf8f8"; setTimeout(function(){ ba.style.background=""; },1500); }); }
+    catch(e){ document.execCommand("copy"); }
+  }));
+
+  // Open Gmail
+  var gmailBtn = document.createElement("button");
+  gmailBtn.textContent = "Open Gmail";
+  gmailBtn.style.cssText = "display:block;width:100%;padding:12px;background:#0a6035;color:white;border:none;border-radius:6px;font-size:16px;cursor:pointer;font-family:Georgia,serif;margin-bottom:10px;margin-top:4px";
+  gmailBtn.onclick = function(){
+    window.open("https://mail.google.com/mail/?view=cm&fs=1&su="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body), "_blank");
+  };
+  box.appendChild(gmailBtn);
+
+  // Mark as sent + close
+  var doneBtn = document.createElement("button");
+  doneBtn.textContent = "Mark as Sent & Close";
+  doneBtn.style.cssText = "display:block;width:100%;padding:12px;background:#1a7878;color:white;border:none;border-radius:6px;font-size:16px;cursor:pointer;font-family:Georgia,serif;margin-bottom:10px";
+  doneBtn.onclick = function(){ if(onSent) onSent(); overlay.remove(); };
+  box.appendChild(doneBtn);
+
+  var closeBtn = document.createElement("button");
+  closeBtn.textContent = "Close";
+  closeBtn.style.cssText = "display:block;width:100%;padding:12px;background:#eee;color:#333;border:none;border-radius:6px;font-size:16px;cursor:pointer;font-family:Georgia,serif";
+  closeBtn.onclick = function(){ overlay.remove(); };
+  box.appendChild(closeBtn);
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
+function renderEmail(main){
+  var html="";
+  var upcoming=D.sessions.filter(isUpcoming);
+  html+="<div style='margin-bottom:18px'><div style='font-size:17px;font-weight:bold;color:#000;margin-bottom:8px'>Select Session</div>";
+  html+="<select style='width:100%;font-size:16px;padding:10px;border:2px solid #88c8c8;border-radius:6px;color:#000;background:white' onchange='emailSessionId=this.value?Number(this.value):null;render()'>";
+  html+="<option value=''>- Choose a session -</option>";
+  upcoming.forEach(function(s){
+    var sel=(emailSessionId&&s.id==emailSessionId)?" selected":"";
+    html+="<option value='"+s.id+"'"+sel+">"+toDateStr(s.date)+" - "+s.time+"</option>";
+  });
+  html+="</select></div>";
+  if(!emailSessionId){
+    html+="<div style='text-align:center;padding:40px;color:#888;font-size:16px'>Select a session above</div>";
+    main.innerHTML=html; return;
+  }
+  var session=D.sessions.find(function(s){return s.id==emailSessionId;});
+  if(!session){main.innerHTML=html;return;}
+  var seat=getSeats(session);
+  var days=daysUntil(session.date);
+  var sentLabel=session.finalEmailSent?" (Sent)":"";
+  // Summary
+  html+="<div style='background:#eaf8f8;border:1px solid #88c8c8;border-radius:10px;padding:14px;margin-bottom:18px'>";
+  html+="<div style='font-size:17px;font-weight:bold;color:#000'>"+toDateStr(session.date)+"</div>";
+  html+="<div style='font-size:15px;color:#333'>"+session.time+(session.location?" - "+session.location:"")+"</div>";
+  html+="<div style='font-size:15px;color:#333;margin-top:4px'>"+seat.total+"/"+MAX_PLAYERS+" confirmed - "+seat.spots+" open</div>";
+  html+="</div>";
+  // Buttons - use data-type attribute to avoid quote issues
+  html+="<div style='margin-bottom:12px'><div style='font-size:16px;font-weight:bold;color:#000;margin-bottom:6px'>4-Day Reminder"+(days===4?" - DUE TODAY":"")+"</div>";
+  html+="<button data-etype='4day' onclick='sendEmailType(this.dataset.etype)' style='width:100%;padding:14px;background:#1a7878;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-family:Georgia,serif'>Send 4-Day Reminder</button></div>";
+  html+="<div style='margin-bottom:12px'><div style='font-size:16px;font-weight:bold;color:#000;margin-bottom:6px'>Final Reminder - Day Before"+(days===1?" - DUE TODAY":"")+sentLabel+"</div>";
+  html+="<button data-etype='1day' onclick='sendEmailType(this.dataset.etype)' style='width:100%;padding:14px;background:#1a7878;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-family:Georgia,serif'>Send Final Reminder</button></div>";
+  if(seat.spots>0&&D.reserve.length>0){
+    html+="<div style='margin-bottom:12px'><div style='font-size:16px;font-weight:bold;color:#000;margin-bottom:6px'>"+seat.spots+" spot"+(seat.spots!==1?"s":"")+" open - notify Reserve</div>";
+    html+="<button data-etype='notify' onclick='sendEmailType(this.dataset.etype)' style='width:100%;padding:14px;background:#0a6035;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-family:Georgia,serif'>Notify Reserve Members</button></div>";
+  }
+  if(showRevisionAlert===session.id){
+    html+="<div style='background:#fff0f4;border:2px solid #b02848;border-radius:8px;padding:14px;margin-bottom:14px'>";
+    html+="<div style='font-size:15px;color:#b02848;font-weight:bold;margin-bottom:8px'>Player list changed after final email sent</div>";
+    html+="<button data-etype='revision' onclick='sendEmailType(this.dataset.etype)' style='width:100%;padding:12px;background:#b02848;color:white;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-family:Georgia,serif'>Send Revision Email</button></div>";
+  }
+  main.innerHTML=html;
+}
+
+function sendEmailType(type){
+  var session=D.sessions.find(function(s){return s.id==emailSessionId;});
+  if(!session){alert("Please select a session first.");return;}
+  var url="";
+  var onSent=null;
+  if(type==="4day") url=build4DayEmail(session);
+  else if(type==="1day"){url=build1DayEmail(session);onSent=function(){markFinalSent(session.id);};}
+  else if(type==="notify") url=buildNotifyEmail(session);
+  else if(type==="revision"){url=buildRevisionEmail(session);onSent=function(){showRevisionAlert=null;render();};}
+  if(url) showEmailComposer(url,onSent);
+}
+
 
 function showEmailComposer(url, onSent) {
   if(!url) { alert("No email data. Please select a session first."); return; }
