@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+var _fbReady = false;
+var _fbCallbacks = [];
+
+function onFirebaseReady(fn) {
+  if(_fbReady) fn();
+  else _fbCallbacks.push(fn);
+}
+
+window.fbSave = function(data){
+  if(!data || !Array.isArray(data.core)) return;
+  window._localChange = true;
+  window.db.ref("clubdata").set(data, function(err){
+    if(err) console.error("Firebase save error:", err);
+    setTimeout(function(){ window._localChange = false; }, 500);
+  });
+};
+
+window.fbListen = function(onData){
+  window.db.ref("clubdata").on("value", function(snapshot){
+    if(window._localChange) return;
+    var val = snapshot.val();
+    if(val && val.core){
+      onData(val);
+    }
+  });
+};
+
+window.fbInit = function(currentData, onData){
+  window.db.ref("clubdata").once("value", function(snapshot){
+    var val = snapshot.val();
+    if(val && val.core){
+      var fbMembers = (val.core||[]).length + (val.reserve||[]).length;
+      var localMembers = (currentData.core||[]).length + (currentData.reserve||[]).length;
+      var fbSessions = (val.sessions||[]).length;
+      var localSessions = (currentData.sessions||[]).length;
+      if(fbMembers >= localMembers || fbSessions >= localSessions){
+        onData(val);
+      } else {
+        window.fbSave(currentData);
+        onData(currentData);
+      }
+    } else {
+      if(currentData && Array.isArray(currentData.core)){
+        window.fbSave(currentData);
+      }
+    }
+    window.fbListen(onData);
+    window._fbInitialized = true;
+    console.log("Firebase connected");
+  });
+};
+
+window._fbPollCount = 0;
+function pollForFirebase() {
+  window._fbPollCount++;
+  if (typeof firebase !== 'undefined') {
+    initFirebaseApp();
+  } else if (window._fbPollCount < 100) {
+    setTimeout(pollForFirebase, 100);
+  } else {
+    console.warn("Firebase SDK never became available after 10 seconds");
+  }
+}
+pollForFirebase();
+
+function initFirebaseApp() {
+  try {
+    var firebaseConfig = {
+      apiKey: "AIzaSyDQxWf7uuqAU_yIcr75z44g0soOgcE7-6c",
+      authDomain: "mahjongmonday-707e6.firebaseapp.com",
+      databaseURL: "https://mahjongmonday-707e6-default-rtdb.firebaseio.com",
+      projectId: "mahjongmonday-707e6",
+      storageBucket: "mahjongmonday-707e6.firebasestorage.app",
+      messagingSenderId: "321481942118",
+      appId: "1:321481942118:web:0c21ebb802dab14a98b9a7"
+    };
+    firebase.initializeApp(firebaseConfig);
+    window.db = firebase.database();
+    _fbReady = true;
+    _fbCallbacks.forEach(function(fn){ try{ fn(); }catch(e){ console.error("Firebase callback error:", e); } });
+  } catch(e) {
+    console.warn("Firebase setup error:", e.message);
+  }
+}
+
+</script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mahjong">
+<meta name="theme-color" content="#2aafaf">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1haGpvbmcgTW9uZGF5IEdyb3VwIiwKICAic2hvcnRfbmFtZSI6ICJNYWhqb25nIiwKICAiZGVzY3JpcHRpb24iOiAiTWFoam9uZyBNb25kYXkgR3JvdXAgc2NoZWR1bGluZyBhbmQgYXR0ZW5kYW5jZSBhcHAiLAogICJzdGFydF91cmwiOiAiLyIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBhMjgyOCIsCiAgInRoZW1lX2NvbG9yIjogIiMyYWFmYWYiLAogICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3h1Y3owaWFIUjBjRG92TDNkM2R5NTNNeTV2Y21jdk1qQXdNQzl6ZG1jaUlIWnBaWGRDYjNnOUlqQWdNQ0ExTVRJZ05URXlJajRLSUNBOElTMHRJRUpoWTJ0bmNtOTFibVFnZEdsc1pTQXRMVDRLSUNBOGNtVmpkQ0IzYVdSMGFEMGlOVEV5SWlCb1pXbG5hSFE5SWpVeE1pSWdjbmc5SWpnd0lpQm1hV3hzUFNJak1HRXlPREk0SWk4K0NpQWdQQ0V0TFNCVWFXeGxJR0p2WkhrZ0xTMCtDaUFnUEhKbFkzUWdlRDBpTmpBaUlIazlJall3SWlCM2FXUjBhRDBpTXpreUlpQm9aV2xuYUhROUlqTTVNaUlnY25nOUlqUXdJaUJtYVd4c1BTSWpNR1l6TlRNMUlpOCtDaUFnUEhKbFkzUWdlRDBpTmpBaUlIazlJall3SWlCM2FXUjBhRDBpTXpreUlpQm9aV2xuYUhROUlqTTVNaUlnY25nOUlqUXdJaUJtYVd4c1BTSnViMjVsSWlCemRISnZhMlU5SWlNeVlXRm1ZV1lpSUhOMGNtOXJaUzEzYVdSMGFEMGlNVElpTHo0S0lDQThJUzB0SUVsdWJtVnlJR0p2Y21SbGNpQXRMVDRLSUNBOGNtVmpkQ0I0UFNJNU1DSWdlVDBpT1RBaUlIZHBaSFJvUFNJek16SWlJR2hsYVdkb2REMGlNek15SWlCeWVEMGlNamdpSUdacGJHdzlJbTV2Ym1VaUlITjBjbTlyWlQwaUl6RmhOekEzTUNJZ2MzUnliMnRsTFhkcFpIUm9QU0kySWk4K0NpQWdQQ0V0TFNCTllXaHFiMjVuSUdOb1lYSmhZM1JsY2lBdElITjBlV3hwZW1Wa0lFMGdMUzArQ2lBZ1BIUmxlSFFnZUQwaU1qVTJJaUI1UFNJeU1EQWlJR1p2Ym5RdFptRnRhV3g1UFNKSFpXOXlaMmxoTEhObGNtbG1JaUJtYjI1MExYTnBlbVU5SWpFNE1DSWdabTl1ZEMxM1pXbG5hSFE5SW1KdmJHUWlJQW9nSUNBZ1ptbHNiRDBpSXpWa1pUaGxPQ0lnZEdWNGRDMWhibU5vYjNJOUltMXBaR1JzWlNJZ1pHOXRhVzVoYm5RdFltRnpaV3hwYm1VOUltMXBaR1JzWlNJK1RUd3ZkR1Y0ZEQ0S0lDQThJUzB0SUVSdmRITWdZWFFnWW05MGRHOXRJR3hwYTJVZ1lTQnRZV2hxYjI1bklIUnBiR1VnTFMwK0NpQWdQR05wY21Oc1pTQmplRDBpTVRjMklpQmplVDBpTXpjd0lpQnlQU0l5TWlJZ1ptbHNiRDBpSXpKaFlXWmhaaUl2UGdvZ0lEeGphWEpqYkdVZ1kzZzlJakkxTmlJZ1kzazlJak0zTUNJZ2NqMGlNaklpSUdacGJHdzlJaU15WVdGbVlXWWlMejRLSUNBOFkybHlZMnhsSUdONFBTSXpNellpSUdONVBTSXpOekFpSUhJOUlqSXlJaUJtYVd4c1BTSWpNbUZoWm1GbUlpOCtDaUFnUENFdExTQkhiMnhrSUdGalkyVnVkQ0JzYVc1bElDMHRQZ29nSUR4eVpXTjBJSGc5SWprd0lpQjVQU0l6TURBaUlIZHBaSFJvUFNJek16SWlJR2hsYVdkb2REMGlOQ0lnY25nOUlqSWlJR1pwYkd3OUlpTXlZV0ZtWVdZaUlHOXdZV05wZEhrOUlqQXVOQ0l2UGdvOEwzTjJaejQ9IiwKICAgICAgInNpemVzIjogImFueSIsCiAgICAgICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiLAogICAgICAicHVycG9zZSI6ICJhbnkgbWFza2FibGUiCiAgICB9CiAgXQp9">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mahjong Monday Group</title>
+<style>
+:root {
+  --bg: #f8fefe; --bg2: #edf8f8; --bg3: #f2fbfb; --bg4: #e6f5f5;
+  --gold: #1a7878; --gold-lt: #d5ffff; --cream: #d2f0f0;
+  --border: #88c8c8; --border2: #aadede; --muted: #444444;
+  --green: #d2fffd; --green-bg: #ecfaf4; --green-dk: #d2fff0;
+  --red: #b02848; --red-bg: #fef0f4;
+  --amber: #e2ffff; --wait: #d2ffff; --wait-bg: #e2f6fa;
+  --yellow-bg: #f4fae8; --yellow: #ffffe0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:#000000;font-family:Georgia,serif;font-size:17px;min-height:100vh;
+  background-image:radial-gradient(ellipse at 20% 10%,#cceaea 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 90%,#d5f6f6 0%,transparent 50%)}
+button{font-family:Georgia,serif;cursor:pointer}
+select,input{font-family:Georgia,serif}
+a{text-decoration:none}
+
+/* Toast */
+#toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-80px);
+  border-radius:8px;padding:10px 20px;font-size:16.2px;z-index:999;
+  box-shadow:0 4px 20px #00000088;white-space:nowrap;transition:transform .3s ease}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.success{background:#ecfaf4;border:1px solid #d2fffd;color:#222222}
+#toast.error{background:#fef0f4;border:1px solid #b02848;color:#b02848}
+#toast.info{background:#eaf8f8;border:1px solid #1a7878;color:#222222}
+
+/* Header */
+header{padding:18px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;
+  background:linear-gradient(180deg,#d8f2f2 0%,transparent 100%)}
+#tile-icon{font-size:40px;filter:drop-shadow(0 0 8px #00bfbfaa)}
+.hd-title{font-size:25px;font-weight:bold;color:var(--gold)}
+.hd-sub{font-size:16px;color:#555555;letter-spacing:.1em;text-transform:uppercase}
+.hd-right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.btn-persist{background:none;border:1px solid var(--border);border-radius:4px;color:#555555;font-size:16px;padding:3px 8px}
+.btn-persist.on{border-color:#4de88444;color:#4de884}
+.hd-io{display:flex;gap:6px}
+.btn-io{background:none;border:1px solid #e2ffff;border-radius:4px;color:#1a7070;font-size:16px;padding:2px 6px;cursor:pointer}
+label.btn-io{cursor:pointer}
+
+/* Nav */
+nav{display:flex;border-bottom:1px solid var(--border);background:#f2fbfb}
+.nav-btn{flex:1;padding:13px 0;background:none;border:none;border-bottom:2px solid transparent;
+  color:#555555;font-size:16.2px;font-family:Georgia,serif;cursor:pointer;letter-spacing:.06em;transition:all .15s}
+.nav-btn.active{background:#d4eeee;border-bottom-color:var(--gold);color:var(--gold)}
+
+/* Main */
+main{padding:18px 14px;max-width:560px;margin:0 auto}
+
+/* Buttons */
+.btn-gold{background:var(--gold);border:none;border-radius:6px;color:#222222;font-size:16.2px;font-weight:bold;padding:9px 18px}
+.btn-ghost{background:none;border:1px solid var(--border);border-radius:6px;color:#555555;font-size:16.2px;padding:9px 18px}
+.btn-sm{font-size:16px;padding:7px 14px}
+.btn-danger{background:none;border:1px solid #e08090;border-radius:8px;color:#b03050;font-size:16.2px;padding:9px 0;width:100%}
+.btn-rsvp{padding:3px 9px;border-radius:99px;font-size:16px;cursor:pointer;font-family:Georgia,serif;background:transparent;transition:all .15s}
+.btn-yes{border:2px solid #0a6035;color:#0a6035;background:#ffffff;padding:8px 16px;border-radius:99px;font-size:16px;cursor:pointer;font-family:Georgia,serif;font-weight:bold}
+.btn-yes.on{background:#0a6035;color:#ffffff;border:2px solid #0a6035;font-weight:bold}
+.btn-no{border:2px solid #b02848;color:#b02848;background:#ffffff;padding:8px 16px;border-radius:99px;font-size:16px;cursor:pointer;font-family:Georgia,serif;font-weight:bold}
+.btn-no.on{background:#b02848;color:#ffffff;border:2px solid #b02848;font-weight:bold}
+.btn-out{border:2px solid #b02848;color:#b02848;padding:8px 16px;border-radius:99px;font-size:16px;cursor:pointer;font-family:Georgia,serif;background:#ffffff;font-weight:bold}
+.btn-out.on{background:#b02848;color:#ffffff;border:2px solid #b02848;font-weight:bold}
+.btn-check{border:2px solid #0a6035;color:#0a6035;padding:8px 16px;border-radius:99px;font-size:16px;cursor:pointer;font-family:Georgia,serif;background:#ffffff;font-weight:bold}
+.btn-check.on{background:#0a6035;color:#ffffff;border:2px solid #0a6035;font-weight:bold}
+
+/* Forms */
+.card{background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+.card.edit-card{border-color:var(--gold)}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:16px;color:#555555;margin-bottom:3px;letter-spacing:.08em}
+.field input,.field select,.field textarea{width:100%;background:#ffffff;border:1px solid #88c8c8;border-radius:6px;
+  color:#000000;font-weight:bold;font-family:Georgia,serif;font-size:17.5px;padding:8px 12px}
+.field select{appearance:none;-webkit-appearance:none}
+.field textarea{resize:vertical;min-height:60px}
+.form-row{display:flex;gap:10px;margin-top:10px}
+.form-row .btn-gold,.form-row .btn-ghost{flex:1}
+
+/* Section head */
+.sec-head{font-size:16px;letter-spacing:.1em;margin-bottom:10px}
+.sec-reg{color:#1a1a1a}
+.sec-wait{color:#3a7a8a}
+
+/* Session list card */
+.sess-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:13px 14px;
+  cursor:pointer;margin-bottom:8px;transition:border-color .15s}
+.sess-card:hover{border-color:var(--gold)}
+
+.sess-title{font-size:17.5px;font-weight:bold;color:var(--gold);margin-bottom:2px}
+.sess-sub{font-size:16px;color:#333333}
+.sess-loc{font-size:16px;color:#555555}
+.sess-set{font-size:16px;color:var(--wait)}
+.sess-alert{font-size:16px;margin-top:3px}
+.bar{height:3px;border-radius:2px;background:#b0dede;margin-top:8px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;background:var(--green);transition:width .4s}
+.bar-fill.full{background:var(--gold-lt)}
+.sess-count{font-size:23.8px;font-weight:bold;color:var(--green);text-align:right}
+.sess-count.full{color:var(--gold)}
+
+/* Seat bar (detail) */
+.seat-bar-wrap{margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)}
+.seat-bar{height:7px;border-radius:4px;background:#b0dede;overflow:hidden}
+.seat-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--green),var(--green-dk));transition:width .4s}
+.seat-bar-fill.full{background:var(--gold-lt)}
+
+/* Member rows */
+.mem-row{background:#f0fbfb;border-radius:8px;border:1px solid var(--border2);overflow:hidden;margin-bottom:5px}
+.mem-row-main{display:flex;align-items:center;padding:9px 11px;gap:9px}
+.mem-row-actions{padding:0 11px 9px;display:flex;gap:7px;border-top:1px solid #e6f5f5}
+.mem-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:16.2px;flex-shrink:0}
+.mem-avatar.reg{background:#e8f8f8;border:2px solid var(--gold);color:var(--gold)}
+.mem-avatar.wait{background:#eaf8fe;border:1px solid #3a7a8a;color:var(--wait)}
+.mem-name{font-size:16.2px;color:#1a1a1a}
+.mem-email{font-size:16px;color:#222222}
+.mem-stat{font-size:16px;color:#222222}
+.btn-dots{background:none;border:none;color:#1a7070;font-size:22.5px;cursor:pointer;padding:2px 5px;line-height:1;margin-left:auto}
+.btn-move{flex:1;background:none;border:1px solid var(--border);border-radius:6px;color:#333333;
+  font-size:16px;padding:5px 0;cursor:pointer;margin-top:8px;font-family:Georgia,serif}
+.btn-remove{flex:1;background:none;border:1px solid #e08090;border-radius:6px;color:#b03050;
+  font-size:16px;padding:5px 0;cursor:pointer;margin-top:8px;font-family:Georgia,serif}
+
+/* RSVP rows */
+.rsvp-row{display:flex;align-items:center;gap:8px;background:#f0fbfb;border-radius:8px;
+  padding:8px 11px;border:1px solid var(--border2);margin-bottom:5px}
+.rsvp-row.opted-out{opacity:.6;border-color:#222222}
+.rsvp-row.promoted{background:#e8f8fc;border-color:#4de88444}
+.rsvp-row.waitlisted{background:#eaf8fe;border-color:#22222244}
+.rsvp-avatar-sm{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0}
+.badge-in{font-size:16px;color:var(--green);margin-left:6px}
+.badge-full{font-size:16px;color:var(--red);margin-left:6px}
+
+/* Email btns */
+.email-btn{display:flex;align-items:center;gap:8px;border-radius:8px;padding:11px 14px;
+  margin-bottom:6px;border:1px solid #e2ffff;background:#eaf8f8;text-decoration:none;font-family:Georgia,serif}
+.email-btn.due{border-color:var(--gold);background:#eaf8f8}
+.email-btn.final{border-color:#222222;background:#f0f4fe}
+.email-btn.final.due{border-color:var(--gold)}
+.email-btn.notify{border-color:#4de88444;background:#e8f8fc}
+
+
+
+.email-label{font-size:16.2px}
+.email-sub{font-size:16px;color:#222222;margin-top:2px}
+.email-arrow{font-size:16px;flex-shrink:0;margin-left:auto}
+
+/* Tier toggle */
+.tier-toggle{display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--border);margin-bottom:12px}
+.tier-btn{flex:1;padding:7px 0;background:transparent;border:none;color:#000000;
+  font-family:Georgia,serif;font-size:16px;font-weight:bold;cursor:pointer}
+.tier-btn.active{background:var(--gold);color:#222222}
+
+/* Import preview */
+.import-preview{max-height:140px;overflow-y:auto;background:#deffff;border-radius:6px;
+  border:1px solid var(--border2);padding:8px 10px;margin-bottom:12px}
+.import-row{font-size:16px;padding:2px 0;display:flex;gap:8px}
+.import-row.skip{color:#222222}
+.import-row.ok{color:#222222}
+
+/* BringSet */
+.bringset-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.bringset-num{font-size:16px;color:#222222;width:18px;flex-shrink:0;text-align:right}
+.bringset-select{flex:1;background:#ffffff;border:1px solid #88c8c8;border-radius:6px;
+  color:#000000;font-family:Georgia,serif;font-size:16.2px;padding:6px 10px;appearance:none}
+.bringset-clear{background:none;border:none;color:#1a7070;font-size:22.5px;cursor:pointer;padding:0 4px;line-height:1}
+
+/* Notify reserve email btn */
+.notify-wrap{background:#e8f8fc;border:1px solid #4de88444;border-radius:8px;
+  padding:9px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* Passcode */
+.passcode-overlay{background:#e4f6f6;border:1px solid var(--border);border-radius:12px;padding:32px 24px;text-align:center;max-width:300px;margin:40px auto}
+.passcode-title{font-size:17.5px;color:var(--gold);margin-bottom:8px;font-weight:bold}
+.passcode-sub{font-size:16px;color:#333333;margin-bottom:24px}
+.passcode-dots{display:flex;justify-content:center;gap:12px;margin-bottom:24px}
+.passcode-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:background .15s}
+.passcode-dot.filled{background:var(--gold-lt);border-color:var(--gold)}
+.passcode-dot.error{background:var(--red);border-color:var(--red)}
+.passcode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:220px;margin:0 auto}
+.passcode-key{background:#ffffff;border:2px solid var(--border);border-radius:10px;padding:14px 0;
+  font-size:22px;color:#000000;font-weight:bold;cursor:pointer;font-family:Georgia,serif;transition:background .15s}
+.passcode-key:hover{background:#d8f2f2}
+.passcode-key.zero{grid-column:2}
+.passcode-key.del{background:none;border-color:transparent;color:#555555;font-size:17.5px}
+.passcode-err{font-size:16px;color:#cc0033;margin-top:12px;min-height:18px}
+/* Util */
+.flex{display:flex}.gap8{gap:8px}.gap10{gap:10px}.mb8{margin-bottom:8px}.mb14{margin-bottom:14px}
+.mb16{margin-bottom:16px}.mb18{margin-bottom:18px}.mb20{margin-bottom:20px}
+.f1{flex:1}.tal{text-align:left}.hidden{display:none}
+.empty-state{text-align:center;color:#222222;padding:48px;font-size:17.5px}
+.hint{font-size:16px;color:#4de884;margin-bottom:12px}
+.hint-muted{font-size:16px;color:#222222}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- Header -->
+<header>
+  <div id="tile-icon">🀄</div>
+  <div>
+    <div class="hd-title">Mahjong Monday Group</div>
+    <div class="hd-sub" id="hd-sub" style="color:#111111;font-size:13px">Loading…</div>
+  </div>
+  <div class="hd-right">
+    <button class="btn-persist" id="btn-persist" onclick="togglePersist()">Save data</button>
+    <div class="hd-io">
+      <button class="btn-io" onclick="exportData()">↓ Export</button>
+      <label class="btn-io">↑ Import<input type="file" accept=".json" onchange="importJson(event)" style="display:none"></label>
+    </div>
+  </div>
+</header>
+
+<!-- Nav -->
+<nav>
+  <button class="nav-btn active" id="nav-schedule" onclick="switchView('schedule')">📅 Schedule</button>
+  <button class="nav-btn" id="nav-members" onclick="switchView('members')">👥 Members</button>
+  <button class="nav-btn" id="nav-email" onclick="switchView('email')">📧 Email</button>
+</nav>
+
+<main id="main"></main>
+
+<script>const APP_URL = "https://tbrufus.github.io/mondaymahjong/";
+
+// ─── State ───────────────────────────────────────────────────────────────────
+const STORAGE_KEY = "mahjong_club_v5";
+const MAX_PLAYERS = 16;
+const MAX_SETS = 4;
+const TILES = ["🀇","🀙","🀀","🀄","🀃","🀅"];
+let tileIdx = 0;
+
+let D = {
+  core: [
+    {id:"r1",name:"Alice",email:"alice@example.com",phone:"",hasSet:"y"},
+    {id:"r2",name:"Barbara",email:"barbara@example.com",phone:"",hasSet:"y"},
+    {id:"r3",name:"Carol",email:"carol@example.com",phone:"",hasSet:"n"},
+    {id:"r4",name:"Diana",email:"diana@example.com",phone:"",hasSet:"n"},
+  ],
+  reserve: [
+    {id:"w1",name:"Eleanor",email:"eleanor@example.com",phone:"",hasSet:"n"},
+    {id:"w2",name:"Frances",email:"frances@example.com",phone:"",hasSet:"n"},
+  ],
+  sessions:[]
+};
+
+let view = "schedule";       // schedule | session | members | email
+let emailSessionId = null;
+let membersUnlocked = false;
+let passcodeInput = "";
+let passcodeError = false;
+let _suppressFbRender = false;
+let showRevisionAlert = null;
+let editingMemberId = null;
+let editMemberData = null; // sessionId that needs revision email
+let selId = null;            // selected session id
+let persist = false;
+let showNew = false;
+let showRecurring = false;
+let showEdit = false;
+let showAddMember = false;
+let showImport = false;
+let importPreview = null;
+let importTier = "core";
+let newMemberTier = "core";
+let openDots = {};           // memberId -> bool
+let newSess = {date:"",time:"1:00 PM",host:"",location:"",notes:"",bringSet:[]};
+let recurOpts = {weeks:8,time:"1:00 PM",host:"",location:"",notes:""};
+let editSess = null;
+let newMember = {name:"",email:"",phone:"",hasSet:"n"};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function toDateStr(d){
+  return new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+}
+function daysUntil(d){
+  const t=new Date(); t.setHours(0,0,0,0);
+  return Math.round((new Date(d+"T00:00:00")-t)/86400000);
+}
+function isUpcoming(s){return new Date(s.date+"T12:00:00")>=new Date(new Date().toDateString())}
+function uid(){return "m"+Date.now()+Math.random().toString(36).slice(2,6)}
+function getNextMondays(n=12){
+  const out=[],d=new Date(); d.setHours(12,0,0,0);
+  const day=d.getDay(), skip=day===1?0:(8-day)%7||7;
+  d.setDate(d.getDate()+skip);
+  for(let i=0;i<n;i++){out.push(new Date(d).toISOString().slice(0,10));d.setDate(d.getDate()+7);}
+  return out;
+}
+
+function getSeats(session){
+  const {core,reserve}=D;
+  const coreYes=core.filter(m=>(session.rsvps[m.id]?.status||"yes")!=="no");
+  const coreNo=core.filter(m=>session.rsvps[m.id]?.status==="no");
+  const slots=Math.max(0,MAX_PLAYERS-coreYes.length);
+  const wl=reserve.filter(m=>session.rsvps[m.id]?.status==="yes")
+    .sort((a,b)=>(session.rsvps[a.id]?.timestamp||0)-(session.rsvps[b.id]?.timestamp||0));
+  const confirmedReserve=wl.slice(0,slots);
+  const overflowReserve=wl.slice(slots);
+  const pendingReserve=reserve.filter(m=>!session.rsvps[m.id]||session.rsvps[m.id]?.status==="pending");
+  // Session waitlist: Reserve members who joined the waitlist when full, sorted by timestamp
+  const sessionWaitlist=reserve.filter(m=>session.rsvps[m.id]?.status==="waitlisted")
+    .sort((a,b)=>(session.rsvps[a.id]?.timestamp||0)-(session.rsvps[b.id]?.timestamp||0));
+  const total=coreYes.length+confirmedReserve.length;
+  return{coreYes,coreNo,confirmedReserve,overflowReserve,pendingReserve,sessionWaitlist,
+    total,spots:Math.max(0,MAX_PLAYERS-total),full:total>=MAX_PLAYERS};
+}
+
+
+function openEmail(url) {
+  if(url.length > 1800) {
+    var qIdx = url.indexOf('?');
+    var params = new URLSearchParams(url.substring(qIdx+1));
+    var bcc = params.get('bcc') || '';
+    var subject = decodeURIComponent(params.get('subject') || '');
+    var emails = bcc.split(',').join(',\n');
+    // Show modal
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+    overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+    var box = document.createElement('div');
+    box.style.cssText = 'background:white;border-radius:12px;padding:24px;max-width:520px;width:100%';
+    box.innerHTML = '<div style="font-size:18px;font-weight:bold;color:#0a3030;margin-bottom:8px">Copy Member Email Addresses</div>'
+      + '<div style="font-size:14px;color:#555;margin-bottom:8px">Copy these addresses and paste into the BCC field of your email:</div>';
+    var ta = document.createElement('textarea');
+    ta.value = emails;
+    ta.readOnly = true;
+    ta.style.cssText = 'width:100%;height:120px;border:2px solid #88c8c8;border-radius:6px;padding:8px;font-size:13px;color:#000;box-sizing:border-box;font-family:monospace';
+    ta.onclick = function(){ this.select(); };
+    box.appendChild(ta);
+    var sub = document.createElement('div');
+    sub.style.cssText = 'font-size:14px;color:#333;margin:10px 0 14px';
+    sub.innerHTML = '<strong>Subject:</strong> ' + subject;
+    box.appendChild(sub);
+    var btns = document.createElement('div');
+    btns.style.cssText = 'display:flex;gap:10px';
+    var copyBtn = document.createElement('button');
+    copyBtn.textContent = 'Copy Addresses';
+    copyBtn.style.cssText = 'flex:1;padding:11px;background:#1a7878;color:white;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-family:Georgia,serif';
+    copyBtn.onclick = function(){
+      ta.select();
+      try{ navigator.clipboard.writeText(ta.value).then(function(){ copyBtn.textContent='Copied!'; }); }
+      catch(e){ document.execCommand('copy'); copyBtn.textContent='Copied!'; }
+    };
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.style.cssText = 'padding:11px 18px;background:#eee;color:#333;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-family:Georgia,serif';
+    closeBtn.onclick = function(){ overlay.remove(); };
+    btns.appendChild(copyBtn);
+    btns.appendChild(closeBtn);
+    box.appendChild(btns);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  } else {
+    window.location.href = url;
+  }
+}
+
+
+function confirmedEmails(seat){
+  var members = [...D.core,...D.reserve];
+  var confirmedIds = [...seat.coreYes,...seat.confirmedReserve].map(function(m){return m.id;});
+  return members.filter(function(m){ return confirmedIds.includes(m.id) && m.email; }).map(function(m){return m.email;}).join(",");
+}
+
+function allEmails(){return[...D.core,...D.reserve].map(m=>m.email).filter(Boolean).join(",")}
+
+
+function allPhones(){return[...D.core,...D.reserve].map(m=>m.phone).filter(Boolean).join(",");}
+function reservePhones(session){return D.reserve.filter(m=>session.rsvps[m.id]?.status!=="yes").map(m=>m.phone).filter(Boolean).join(",");}
+
+
+
+
+
+function buildRevisionEmail(s){
+  const seat=getSeats(s);
+  const names=[...seat.coreYes.map(m=>m.name),...seat.confirmedReserve.map(m=>m.name+" (reserve)")].join("\n  \u2022 ");
+  const sets=Array.isArray(s.bringSet)?s.bringSet:(s.bringSet?[s.bringSet]:[]);
+  const setLine=sets.length?"\n\ud83c\udc04 Sets:\n"+sets.map((n,i)=>"  Table "+(i+1)+": "+n).join("\n"):"\n\ud83c\udc04 Sets: Not yet assigned";
+  const wl=seat.sessionWaitlist.length>0?"\nSession waitlist: "+seat.sessionWaitlist.map((m,i)=>"#"+(i+1)+" "+m.name).join(", "):"";
+  const subj=encodeURIComponent("REVISED: Mahjong Monday - "+toDateStr(s.date)+" Player List Update");
+  const body=encodeURIComponent("Hi everyone,\n\nThere has been a change to tomorrow's player list."+setLine+"\n\nUPDATED PLAYERS ("+seat.total+"/"+MAX_PLAYERS+"):\n  \u2022 "+(names||"None confirmed")+wl+"\n\nMonday Mahjong GCAI: https://tbrufus.github.io/mondaymahjong/\n\nApologies for any confusion - see you tomorrow!");
+  return "mailto:tbrufus@gmail.com?bcc="+allEmails()+"&subject="+subj+"&body="+body;
+}
+
+function markFinalSent(sessId){
+  const s=D.sessions.find(s=>s.id==sessId);
+  if(s){ s.finalEmailSent=true; saveData(); render(); toast("Final reminder marked as sent","success"); }
+}
+function build4DayEmail(s){
+  const seat=getSeats(s);
+  const waitLine=seat.spots>0?"\n\u26a1 "+seat.spots+" spot"+(seat.spots!==1?"s":"")+" still open \u2014 first to confirm gets in!":"\nSession is FULL.";
+  const subj=encodeURIComponent("Monday Mah Jongg at GCAI - Are you playing?");
+  const body=encodeURIComponent("Hi everyone,\n\nReminder: Mahjong this "+toDateStr(s.date)+" at "+s.time+(s.location?"\nLocation: "+s.location:"")+"."+"\n\nWe currently have "+seat.total+" of "+MAX_PLAYERS+" players confirmed."+waitLine+"\n\nCore Members - remember to opt out if you are not playing this week.\\n\\nDo not respond to this email.\\\\nPlease update your status here:\nhttps://tbrufus.github.io/mondaymahjong/\n\nSee you Monday! \ud83c\udc04");
+  return "mailto:tbrufus@gmail.com?bcc="+allEmails()+"&subject="+subj+"&body="+body;
+}
+function quickAutoAssign(sessId){
+  var session = D.sessions.find(function(s){ return s.id == sessId; });
+  if(!session) return;
+  var assigned = autoAssignSetsForSession(session);
+  session.bringSet = assigned;
+  saveData(); render();
+  toast(assigned.length + " set-bringer" + (assigned.length!==1?"s":"") + " randomly assigned","success");
+}
+function autoAssignSetsForSession(session){
+  // Only assign if not already assigned
+  var existing = Array.isArray(session.bringSet) ? session.bringSet.filter(Boolean) : [];
+  var seat = getSeats(session);
+  var tablesNeeded = Math.min(Math.ceil(seat.total / 4), MAX_SETS);
+  if(tablesNeeded === 0) return existing;
+
+  // If already fully assigned, keep as is
+  if(existing.length >= tablesNeeded) return existing;
+
+  // Pool: confirmed attendees who own a set, not already assigned
+  var allMembers = [...D.core, ...D.reserve];
+  var attending = [
+    ...seat.coreYes.map(m => m.name),
+    ...seat.confirmedReserve.map(m => m.name)
+  ];
+  var setOwners = attending.filter(function(name){
+    var m = allMembers.find(function(x){ return x.name === name; });
+    return m && m.hasSet === "y";
+  }).filter(function(name){ return !existing.includes(name); });
+
+  // Shuffle
+  for(var i = setOwners.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = setOwners[i]; setOwners[i] = setOwners[j]; setOwners[j] = tmp;
+  }
+
+  var needed = tablesNeeded - existing.length;
+  var assigned = existing.concat(setOwners.slice(0, needed));
+
+  // If not enough set owners, fill from anyone attending
+  if(assigned.length < tablesNeeded){
+    var others = attending.filter(function(n){ return !assigned.includes(n); });
+    for(var i = others.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = others[i]; others[i] = others[j]; others[j] = tmp;
+    }
+    assigned = assigned.concat(others.slice(0, tablesNeeded - assigned.length));
+  }
+
+  return assigned;
+}
+function build1DayEmail(s){
+  const seat=getSeats(s);
+  const allM=[...D.core,...D.reserve];
+
+  // Get emails of ALL members (everyone needs to know)
+  const toEmails=allM.filter(function(m){return m.email;}).map(function(m){return m.email;});
+
+  // Auto-assign sets
+  const sets=autoAssignSetsForSession(s);
+  if(sets.length>0 && JSON.stringify(sets)!==JSON.stringify(s.bringSet)){
+    s.bringSet=sets;
+    var sidx=D.sessions.findIndex(function(x){return x.id==s.id;});
+    if(sidx>=0) D.sessions[sidx].bringSet=sets;
+    saveData();
+  }
+
+  const players=[...seat.coreYes.map(function(m){return m.name;}),...seat.confirmedReserve.map(function(m){return m.name+" (reserve)";})];
+  const playerList=players.map(function(n){return "  • "+n;}).join("\n");
+  const setLine=sets.length?"\nMahjong sets:\n"+sets.map(function(n,i){return "  Table "+(i+1)+": "+n+" - thank you!";}).join("\n"):"\nSets: not yet assigned";
+
+  const subj=encodeURIComponent("Monday Mah Jong at GCAI - Who is playing");
+  const body=encodeURIComponent(
+    "Hi everyone,\n\n"
+    +"We're playing tomorrow - "+toDateStr(s.date)+" at "+s.time+(s.location?"\nLocation: "+s.location:"")+"."
+    +setLine
+    +"\n\nTomorrow's players ("+seat.total+"/"+MAX_PLAYERS+"):\n"+playerList
+    +"\n\nDo not respond to this email.\\nIf you need to cancel at last minute or join to fill available seats, click the link below.\n"
+    +APP_URL
+    +"\n\nSee you tomorrow!"
+  );
+
+  return "mailto:tbrufus@gmail.com?bcc="+toEmails.join(",")+"&subject="+subj+"&body="+body;
+}
+
+function buildNotifyEmail(s){
+  const seat=getSeats(s);
+  const pending=D.reserve.filter(m=>s.rsvps[m.id]?.status!=="yes");
+  const emails=pending.map(m=>m.email).filter(Boolean).join(",");
+  const subj=encodeURIComponent(`Mahjong Monday Group — ${seat.spots} Spot${seat.spots!==1?"s":""} Open`);
+  const body=encodeURIComponent(`Hi,\n\n${seat.spots} spot${seat.spots!==1?"s are":" is"} open for ${toDateStr(s.date)} at ${s.time}. First to reply gets in!\n\nClaim your spot — Monday Mahjong GCAI: https://tbrufus.github.io/mondaymahjong/\n\nSee you at the table! 🀄`);
+  return`mailto:${emails}?subject=${subj}&body=${body}`;
+}
+
+function mkDefaultRsvps(){
+  const r={};
+  D.core.forEach(m=>{r[m.id]={status:"yes",timestamp:Date.now()};});
+  return r;
+}
+
+// ─── Persistence ─────────────────────────────────────────────────────────────
+function loadData(){try{const s=localStorage.getItem(STORAGE_KEY);if(s)D=JSON.parse(s);}catch{}}
+function saveData(){
+  try{if(persist)localStorage.setItem(STORAGE_KEY,JSON.stringify(D));}catch{}
+  // Also push to Firebase
+  if(typeof fbSave !== 'undefined'){ fbSave(D); }
+}
+function togglePersist(){
+  persist=!persist;
+  if(!persist)localStorage.removeItem(STORAGE_KEY);
+  else localStorage.setItem(STORAGE_KEY,JSON.stringify(D));
+  document.getElementById("btn-persist").className="btn-persist"+(persist?" on":"");
+  document.getElementById("btn-persist").textContent=persist?"💾 Saving":"Save data";
+  toast(persist?"Data will be saved":"Saving disabled","info");
+}
+function exportData(){
+  try {
+    var json = JSON.stringify(D, null, 2);
+    var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(json);
+    var a = document.createElement("a");
+    a.setAttribute("href", dataStr);
+    a.setAttribute("download", "mahjong-club.json");
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast("Data exported", "success");
+  } catch(e) {
+    // Fallback: open JSON in new tab so user can save manually
+    var json = JSON.stringify(D, null, 2);
+    var w = window.open("", "_blank");
+    if(w) {
+      w.document.write("<pre>" + json + "</pre>");
+      w.document.title = "mahjong-club.json";
+      toast("Opened in new tab — use File > Save to download", "info");
+    } else {
+      toast("Export blocked — try allowing popups", "error");
+    }
+  }
+}
+function importJson(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{try{const p=JSON.parse(ev.target.result);if(p.core&&p.sessions){D=p;saveData();render();toast("Data imported","success");}else toast("Invalid file","error");}catch{toast("Could not read file","error");}};
+  r.readAsText(f);e.target.value="";
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg,type="info"){
+  const el=document.getElementById("toast");
+  el.textContent=msg;el.className=type+" show";
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className=type,3200);
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+function addSession(){
+  if(!newSess.date){toast('Please enter a date','error');return;}
+  if(!newSess.host){toast('Please enter a host name','error');return;}
+  D.sessions.push({...newSess,id:Date.now(),rsvps:mkDefaultRsvps()});
+  D.sessions.sort((a,b)=>a.date.localeCompare(b.date));
+  newSess={date:"",time:"1:00 PM",host:"",location:"",notes:"",bringSet:[]};
+  showNew=false;saveData();render();toast("Session added — Core set to ✓ Going","success");
+}
+function addRecurringSessions(){
+  const mondays=getNextMondays(parseInt(recurOpts.weeks)||8);
+  const existing=new Set(D.sessions.map(s=>s.date));
+  let added=0;
+  mondays.filter(d=>!existing.has(d)).forEach(date=>{
+    D.sessions.push({date,time:recurOpts.time,host:recurOpts.host,location:recurOpts.location,
+      notes:recurOpts.notes,bringSet:[],id:Date.now()+Math.random(),rsvps:mkDefaultRsvps()});
+    added++;
+  });
+  D.sessions.sort((a,b)=>a.date.localeCompare(b.date));
+  showRecurring=false;saveData();render();toast(`${added} Monday sessions added`,"success");
+}
+function saveEditSession(){
+  const idx=D.sessions.findIndex(s=>s.id===editSess.id);
+  if(idx>=0)D.sessions[idx]={...D.sessions[idx],...editSess};
+  showEdit=false;saveData();render();toast("Session updated","success");
+}
+function deleteSession(id){
+  D.sessions=D.sessions.filter(s=>s.id!=id);
+  selId=null;view="schedule";saveData();render();toast("Session deleted");
+}
+function setRSVP(sessId,memberId,status){
+  const s=D.sessions.find(s=>s.id==sessId);
+  if(!s)return;
+  if(!s.rsvps)s.rsvps={};
+  s.rsvps[memberId]={status,timestamp:Date.now()};
+  // Auto-promote from session waitlist if spots opened
+  autoPromote(s);
+  // Flag revision needed if final email was already sent
+  if(s.finalEmailSent){ showRevisionAlert=sessId; }
+  saveData();render();
+}
+
+function autoPromote(session){
+  const seat=getSeats(session);
+  if(seat.spots>0 && seat.sessionWaitlist.length>0){
+    const toPromote=seat.sessionWaitlist.slice(0,seat.spots);
+    toPromote.forEach(m=>{
+      session.rsvps[m.id]={status:"yes",timestamp:session.rsvps[m.id]?.timestamp||Date.now()};
+    });
+    if(toPromote.length>0){
+      toast(`${toPromote.length} member${toPromote.length!==1?"s":""} promoted from session waitlist!`,"success");
+    }
+  }
+}
+function addMember(){
+  const name=newMember.name.trim();if(!name)return;
+  if([...D.core,...D.reserve].map(m=>m.name).includes(name)){toast("Name already exists","error");return;}
+  const tier=newMemberTier==="core"?"core":"reserve";
+  D[tier].push({id:uid(),name,email:newMember.email.trim(),phone:newMember.phone.trim(),hasSet:newMember.hasSet||"n"});
+  newMember={name:"",email:"",phone:"",hasSet:"n"};showAddMember=false;saveData();render();
+  toast(`${name} added as ${newMemberTier}`,"success");
+}
+
+function saveMemberEdit(id,tier){
+  var tierKey=tier==="core"?"core":"reserve";
+  var idx=D[tierKey].findIndex(function(m){return m.id===id;});
+  if(idx>=0 && editMemberData){
+    D[tierKey][idx]=Object.assign(D[tierKey][idx],{
+      name:editMemberData.name.trim()||D[tierKey][idx].name,
+      email:editMemberData.email||"",
+      phone:editMemberData.phone||"",
+      hasSet:editMemberData.hasSet||"n"
+    });
+    saveData();
+  }
+  editingMemberId=null;editMemberData=null;openDots[id]=false;
+  toast((editMemberData?editMemberData.name:"")||"Member"+" updated","success");
+  render();
+}
+function removeMember(id,tier){D[tier]=D[tier].filter(m=>m.id!==id);saveData();render();}
+function moveTier(id,fromTier){
+  const toTier=fromTier==="core"?"reserve":"core";
+  const m=D[fromTier].find(m=>m.id===id);
+  D[fromTier]=D[fromTier].filter(m=>m.id!==id);
+  D[toTier].push(m);
+  saveData();render();toast(`Moved to ${toTier==="core"?"Core":"Reserve"}`,"success");
+}
+function confirmImport(){
+  if(!importPreview)return;
+  const existing=[...D.core,...D.reserve].map(m=>m.name.toLowerCase());
+  const tier=importTier==="core"?"core":"reserve";
+  const toAdd=importPreview.filter(m=>!existing.includes(m.name.toLowerCase()))
+    .map(m=>({id:uid(),name:m.name,email:m.email,phone:m.phone||"",hasSet:m.hasSet||"n"}));
+  D[tier].push(...toAdd);
+  importPreview=null;showImport=false;saveData();render();
+  toast(`${toAdd.length} members imported as ${importTier}`,"success");
+}
+
+function parseCSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2)return[];
+  const headers=lines[0].split(",").map(h=>h.trim().replace(/^"|"$/g,""));
+  const nameIdx=headers.findIndex(h=>/name/i.test(h));
+  const emailIdx=headers.findIndex(h=>/email/i.test(h));
+  const phoneIdx=headers.findIndex(h=>/phone|mobile|cell/i.test(h));
+  const setIdx=headers.findIndex(h=>/set/i.test(h));
+  return lines.slice(1).map(l=>{
+    const cols=l.split(",").map(c=>c.trim().replace(/^"|"$/g,""));
+    return{name:nameIdx>=0?cols[nameIdx]||"":"",email:emailIdx>=0?cols[emailIdx]||"":"",phone:phoneIdx>=0?cols[phoneIdx]||"":"",hasSet:setIdx>=0?(cols[setIdx]||"n").toLowerCase().startsWith("y")?"y":"n":"n"};
+  }).filter(r=>r.name);
+}
+
+function handleCSV(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{importPreview=parseCSV(ev.target.result);render();};
+  r.readAsText(f);e.target.value="";
+}
+
+// BringSet helpers
+
+function randomAssignSets(){
+  if(!editSess) return;
+  const seat = getSeats(editSess);
+  // Attending members who own a set
+  const attending = [
+    ...seat.coreYes.map(m=>m.name),
+    ...seat.confirmedReserve.map(m=>m.name)
+  ];
+  const allMembers = [...D.core, ...D.reserve];
+  const setOwners = attending.filter(name => {
+    const m = allMembers.find(m=>m.name===name);
+    return m && m.hasSet==="y";
+  });
+  // How many tables needed (ceil of confirmed/4)
+  const tablesNeeded = Math.min(Math.ceil(seat.total / 4), MAX_SETS);
+  if(setOwners.length === 0){
+    toast("No attending members own a set","error"); return;
+  }
+  // Shuffle set owners
+  for(let i=setOwners.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [setOwners[i],setOwners[j]]=[setOwners[j],setOwners[i]];
+  }
+  editSess.bringSet = setOwners.slice(0, tablesNeeded);
+  render();
+  toast(`${editSess.bringSet.length} set-bringer${editSess.bringSet.length!==1?"s":""} assigned for ${tablesNeeded} table${tablesNeeded!==1?"s":""}`, "success");
+}
+function setBringSetSlot(idx,name){
+  if(!editSess)return;
+  const arr=Array.isArray(editSess.bringSet)?[...editSess.bringSet]:[];
+  if(name==="")arr.splice(idx,1);
+  else arr[idx]=name;
+  editSess.bringSet=arr.filter(Boolean);
+  render();
+}
+function setNewSessBringSetSlot(idx,name){
+  const arr=Array.isArray(newSess.bringSet)?[...newSess.bringSet]:[];
+  if(name==="")arr.splice(idx,1);
+  else arr[idx]=name;
+  newSess.bringSet=arr.filter(Boolean);
+  render();
+}
+
+// ─── Render helpers ───────────────────────────────────────────────────────────
+function renderBringSetPicker(selected,attendees,onSlotChange,showRandom){
+  const rowCount=Math.min(selected.length+1,MAX_SETS);
+  let html=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+    <div class="hint-muted">One set per table of 4 — ${selected.length}/${MAX_SETS} assigned</div>
+    ${showRandom?'<button class="btn-ghost" style="font-size:16px;padding:4px 10px;margin-left:auto" onclick="randomAssignSets()">🎲 Auto-assign</button>':""}
+  </div>`;
+  for(let i=0;i<rowCount;i++){
+    const val=selected[i]||"";
+    const taken=selected.filter((_,j)=>j!==i);
+    const avail=attendees.filter(n=>!taken.includes(n));
+    html+=`<div class="bringset-row">
+      <div class="bringset-num">${i+1}.</div>
+      <select class="bringset-select" onchange="${onSlotChange}(${i},this.value)">
+        <option value="">— Table ${i+1}: unassigned —</option>
+        ${avail.map(n=>`<option value="${n}"${val===n?" selected":""}>${n}</option>`).join("")}
+      </select>
+      ${val?'<button class="bringset-clear" onclick="'+onSlotChange+'('+i+',\'\')">×</button>':""}
+    </div>`;
+  }
+  if(selected.length===MAX_SETS)html+=`<div style="font-size:16px;color:var(--green)">✓ All 4 tables assigned</div>`;
+  return html;
+}
+
+
+function enterPasscode(digit){
+  if(passcodeInput.length>=4) return;
+  passcodeInput += digit;
+  passcodeError = false;
+  if(passcodeInput.length===4){
+    if(passcodeInput==="1016"){
+      membersUnlocked=true;
+      passcodeInput="";
+      render();
+      toast("Members unlocked","success");
+    } else {
+      passcodeError=true;
+      setTimeout(()=>{passcodeInput="";passcodeError=false;render();},900);
+      render();
+    }
+  } else {
+    render();
+  }
+}
+function delPasscode(){passcodeInput=passcodeInput.slice(0,-1);render();}
+function lockMembers(){membersUnlocked=false;passcodeInput="";render();toast("Members locked");}
+
+function renderPasscodeScreen(){
+  const dots=[0,1,2,3].map(i=>{
+    const filled=i<passcodeInput.length;
+    return`<div class="passcode-dot${filled?(passcodeError?" error":" filled"):""}"></div>`;
+  }).join("");
+  return`<div class="passcode-overlay">
+    <div class="passcode-title">🔒 Members Area</div>
+    <div class="passcode-sub">Enter passcode to manage members</div>
+    <div class="passcode-dots">${dots}</div>
+    <div class="passcode-grid">
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="passcode-key" onclick="enterPasscode('${n}')">${n}</button>`).join("")}
+      <button class="passcode-key del" onclick="delPasscode()">⌫</button>
+      <button class="passcode-key zero" onclick="enterPasscode('0')">0</button>
+    </div>
+    <div class="passcode-err">${passcodeError?"Incorrect passcode":""}</div>
+  </div>`;
+}
+// ─── Main render ─────────────────────────────────────────────────────────────
+function openSession(id){selId=id;view="session";showEdit=false;render();}
+function backToSchedule(){selId=null;view="schedule";showEdit=false;render();}
+function openEdit(){var s=D.sessions.find(function(s){return s.id===selId;});if(s){editSess=Object.assign({},s,{bringSet:Array.isArray(s.bringSet)?s.bringSet.slice():[]});showEdit=true;render();}}
+function render(){
+  // Update header
+  document.getElementById("hd-sub").textContent=
+    `${D.core.length} Reg · ${D.reserve.length} Wait · Max ${MAX_PLAYERS} · Mon 1–4pm`;
+
+  // Tile animation
+  document.getElementById("tile-icon").textContent=TILES[tileIdx];
+
+  // Nav active state
+  document.getElementById("nav-schedule").className="nav-btn"+(view==="schedule"||view==="session"?" active":"");
+  document.getElementById("nav-members").className="nav-btn"+(view==="members"?" active":"");
+  document.getElementById("nav-email").className="nav-btn"+(view==="email"?" active":"");
+
+  const main=document.getElementById("main");
+
+  if(view==="members"){renderMembers(main);return;}
+  if(view==="email"){renderEmail(main);return;}
+  if(view==="session"&&selId){renderSession(main);return;}
+  renderSchedule(main);
+}
+
+// ─── Schedule List ────────────────────────────────────────────────────────────
+function renderSchedule(main){
+  const upcoming=D.sessions.filter(isUpcoming).length;
+  let html=`<div class="flex gap8 mb18" style="flex-wrap:wrap">
+    <button class="btn-gold btn-sm" onclick="showRecurring=true;render()">🔁 Mon Schedule</button>
+    <button class="btn-ghost btn-sm" onclick="showNew=true;render()">+ One Session</button>
+    <div style="margin-left:auto;font-size:16px;color:#333333;align-self:center">${upcoming} upcoming</div>
+  </div>`;
+
+  if(showRecurring){
+    const newCount=getNextMondays(parseInt(recurOpts.weeks)||8).filter(d=>!D.sessions.find(s=>s.date===d)).length;
+    html+=`<div class="card">
+      <div style="font-size:17.5px;color:var(--gold);font-weight:bold;margin-bottom:14px">🔁 Schedule Monday Sessions</div>
+      <div class="field"><label>HOW MANY WEEKS AHEAD?</label>
+        <input type="number" min="1" max="52" value="${recurOpts.weeks}" oninput="recurOpts.weeks=this.value;render()"></div>
+      <div class="field"><label>DEFAULT HOST</label>
+        <input type="text" value="${recurOpts.host}" oninput="recurOpts.host=this.value"></div>
+      <div class="field"><label>DEFAULT LOCATION</label>
+        <input type="text" value="${recurOpts.location}" oninput="recurOpts.location=this.value"></div>
+      <div class="field"><label>DEFAULT NOTES</label>
+        <input type="text" value="${recurOpts.notes}" oninput="recurOpts.notes=this.value"></div>
+      <div class="hint">Will add ${newCount} new Monday sessions — Core default to ✓ Going</div>
+      <div class="form-row">
+        <button class="btn-gold" onclick="addRecurringSessions()">Generate Sessions</button>
+        <button class="btn-ghost" onclick="showRecurring=false;render()">Cancel</button>
+      </div></div>`;
+  }
+
+  if(showNew){
+    const regNames=D.core.map(m=>m.name);
+    const bsSelected=Array.isArray(newSess.bringSet)?newSess.bringSet:[];
+    html+=`<div class="card">
+      <div style="font-size:17.5px;color:var(--gold);font-weight:bold;margin-bottom:14px">New Session</div>
+      <div class="field"><label>DATE</label><input type="date" value="${newSess.date}" oninput="newSess.date=this.value" onchange="newSess.date=this.value"></div>
+      <div class="field"><label>TIME</label><input type="text" value="${newSess.time}" oninput="newSess.time=this.value"></div>
+      <div class="field"><label>HOST</label><input type="text" value="${newSess.host}" oninput="newSess.host=this.value" onchange="newSess.host=this.value"></div>
+      <div class="field"><label>LOCATION</label><input type="text" value="${newSess.location}" oninput="newSess.location=this.value"></div>
+      <div class="field"><label>WHO BRINGS THE MAHJONG SET?</label>
+        ${renderBringSetPicker(bsSelected,regNames,"setNewSessBringSetSlot",false)}</div>
+      <div class="field"><label>NOTES</label><input type="text" value="${newSess.notes}" oninput="newSess.notes=this.value"></div>
+      <div class="hint">✓ All ${D.core.length} Core defaulted to Going</div>
+      <div class="form-row">
+        <button class="btn-gold" onclick="addSession()">Add Session</button>
+        <button class="btn-ghost" onclick="showNew=false;render()">Cancel</button>
+      </div></div>`;
+  }
+
+  const upcomingSessions=D.sessions.filter(isUpcoming);
+  if(upcomingSessions.length===0){
+    html+=`<div class="empty-state">No upcoming sessions — use 🔁 Mon Schedule above!</div>`;
+  }
+
+  upcomingSessions.forEach(s=>{
+    const seat=getSeats(s);
+    const days=daysUntil(s.date);
+    const sets=Array.isArray(s.bringSet)?s.bringSet:(s.bringSet?[s.bringSet]:[]);
+    const pct=Math.round((seat.total/MAX_PLAYERS)*100);
+    html+=`<div class="sess-card" onclick="openSession(${s.id})">
+      <div class="flex" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="sess-title" style="color:#1a1a1a">${toDateStr(s.date)}</div>
+          <div class="sess-sub">${s.time}${s.host?" · "+s.host:""}</div>
+          ${s.location?'<div class="sess-loc">📍 '+(s.location)+'</div>':""}
+          ${sets.length?'<div class="sess-set">🀄 Sets: '+(sets.join(", "))+'</div>':""}
+          ${days===4?'<div class="sess-alert" style="color:var(--gold)">📧 4-day reminder due today</div>':""}
+          ${days===1?'<div class="sess-alert" style="color:var(--gold)">📧 Final reminder due today</div>':""}
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:12px">
+          <div class="sess-count${seat.full?" full":""}">${seat.total}/${MAX_PLAYERS}</div>
+          <div style="font-size:16px;color:#000000;font-weight:bold">${seat.full?"FULL":"confirmed"}</div>
+        </div>
+      </div>
+      <div class="bar"><div class="bar-fill${seat.full?" full":""}" style="width:${pct}%"></div></div>
+    </div>`;
+  });
+
+  main.innerHTML=html;
+}
+
+// ─── Session Detail ───────────────────────────────────────────────────────────
+function renderSession(main){
+  var session=D.sessions.find(function(s){return s.id==selId;});
+  if(!session){view="schedule";render();return;}
+  var seat=getSeats(session);
+  var days=daysUntil(session.date);
+  var pct=Math.round((seat.total/MAX_PLAYERS)*100);
+  var sets=Array.isArray(session.bringSet)?session.bringSet:(session.bringSet?[session.bringSet]:[]);
+  var attendeeNames=seat.coreYes.map(function(m){return m.name;}).concat(seat.confirmedReserve.map(function(m){return m.name;}));
+
+  var html='<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">';
+  html+='<button class="btn-ghost btn-sm" style="font-size:16px" onclick="backToSchedule()">&#8592; Back</button>';
+  html+='<button class="btn-ghost btn-sm" style="margin-left:auto;font-size:16px" onclick="openEdit()">&#9998; Edit</button>';
+  html+='</div>';
+
+  // Edit form
+  if(showEdit&&editSess){
+    var bsSelected=Array.isArray(editSess.bringSet)?editSess.bringSet:[];
+    html+='<div class="card edit-card">';
+    html+='<div style="font-size:18px;color:var(--gold);font-weight:bold;margin-bottom:14px">Edit Session</div>';
+    var fields=[["date","Date","date"],["time","Time","text"],["host","Host","text"],["location","Location","text"],["notes","Notes","text"]];
+    fields.forEach(function(f){
+      html+='<div class="field"><label>'+f[1].toUpperCase()+'</label>';
+      html+='<input type="'+f[2]+'" value="'+(editSess[f[0]]||"")+'" oninput="editSess[\''+f[0]+'\']=this.value" style="font-size:16px;background:#ffffff;color:#000000;font-weight:bold"></div>';
+    });
+    html+='<div class="field"><label>WHO BRINGS THE MAHJONG SET?</label>';
+    html+=renderBringSetPicker(bsSelected,attendeeNames,"setBringSetSlot",true);
+    html+='</div>';
+    html+='<div class="form-row">';
+    html+='<button class="btn-gold" style="font-size:16px" onclick="saveEditSession()">Save</button>';
+    html+='<button class="btn-ghost" style="font-size:16px" onclick="showEdit=false;render()">Cancel</button>';
+    html+='</div></div>';
+  }
+
+  // Session info card
+  html+='<div style="background:#edf8f8;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">';
+  html+='<div style="font-size:19px;font-weight:bold;color:var(--gold);margin-bottom:6px">'+toDateStr(session.date)+'</div>';
+  html+='<div style="font-size:16px;color:#333333;margin-bottom:2px">&#128337; '+session.time+'</div>';
+  if(session.host) html+='<div style="font-size:16px;color:#333333;margin-bottom:2px">&#128100; '+session.host+'</div>';
+  if(session.location) html+='<div style="font-size:16px;color:#333333;margin-bottom:2px">&#128205; '+session.location+'</div>';
+  if(sets.length){
+    html+='<div style="font-size:16px;color:var(--wait);margin-bottom:2px">&#127004; Sets: ';
+    html+=sets.map(function(n,i){return '<strong>Table '+(i+1)+': '+n+'</strong>';}).join(', ');
+    html+='</div>';
+  } else {
+    html+='<div style="font-size:16px;color:#2a7070;font-style:italic">&#127004; Sets: not assigned — tap &#9998; Edit to add</div>';
+  }
+  if(session.notes) html+='<div style="font-size:16px;color:#555555;margin-top:6px;font-style:italic">"'+session.notes+'"</div>';
+  html+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)">';
+  html+='<div style="display:flex;justify-content:space-between;margin-bottom:5px">';
+  html+='<span style="font-size:17px;color:'+(seat.full?"#b07000":"#0a6035")+';font-weight:bold">'+seat.total+' / '+MAX_PLAYERS+' confirmed</span>';
+  html+='<span style="font-size:16px;color:'+(seat.full?"var(--red)":"var(--muted)")+'">'+( seat.full?"FULL":seat.spots+" open")+'</span>';
+  html+='</div>';
+  html+='<div class="seat-bar"><div class="seat-bar-fill'+(seat.full?" full":"")+'" style="width:'+pct+'%"></div></div>';
+  html+='</div></div>';
+
+  // Revision alert
+  if(showRevisionAlert===session.id){
+    html+='<div style="background:#fff0f4;border:1px solid var(--red);border-radius:8px;padding:12px 14px;margin-bottom:10px">';
+    html+='<div style="font-size:16px;color:var(--red);font-weight:bold;margin-bottom:6px">&#9888; Player list changed after final email was sent</div>';
+    html+='<div style="font-size:16px;color:#a04060;margin-bottom:10px">Send a revision to notify members of the updated list.</div>';
+    html+='<a href="'+buildRevisionEmail(session)+'" class="email-btn" style="border-color:var(--red);background:#fff0f4;text-decoration:none;display:flex" onclick="showRevisionAlert=null;render()">';
+  html+='<div style="flex:1"><div style="font-size:16px;color:#b02848;font-weight:bold">&#128231; Send Revision Email</div>';
+  html+='<div style="font-size:16px;color:#222222">All members &middot; updated list</div></div>';
+  html+='<div style="font-size:16px;color:#b02848;font-weight:bold;flex-shrink:0">Open Mail &#8594;</div></a>';
+  html+='</div>';
+  }
+
+  // Email link in session detail
+  html+='<div style="margin-bottom:14px;padding:10px 14px;background:#eaf8f8;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between">';
+  html+='<div style="font-size:16px;color:#333333">Send reminders for this session</div>';
+  html+='<button class="btn-ghost btn-sm" style="font-size:15px" onclick="emailSessionId='+session.id+';switchView(\'email\')" >📧 Go to Email</button>';
+  html+='</div>';
+
+// Core RSVPs
+  html+='<div class="sec-head sec-reg" style="font-size:16px">&#11088; CORE</div>';
+  D.core.forEach(function(m){
+    var status=session.rsvps[m.id]?session.rsvps[m.id].status:"yes";
+    html+='<div class="rsvp-row'+(status==="no"?" opted-out":"")+'">';
+    html+='<div class="rsvp-avatar-sm mem-avatar reg" style="font-size:16px">'+m.name[0]+'</div>';
+    html+='<div style="flex:1;font-size:18px;color:#000000;font-weight:bold">'+m.name+'</div>';
+    html+='<button class="btn-check'+(status!=="no"?" on":"")+'" data-sid="'+session.id+'" data-mid="'+m.id+'" onclick="setRSVP(this.dataset.sid,this.dataset.mid,\'yes\')">&#10003;</button>';
+    html+='<button class="btn-out'+(status==="no"?" on":"")+'" data-sid="'+session.id+'" data-mid="'+m.id+'" onclick="setRSVP(this.dataset.sid,this.dataset.mid,\'no\')">&#10005; Out</button>';
+    html+='</div>';
+  });
+
+  // Reserve RSVPs
+  html+='<div class="sec-head" style="margin-top:16px;font-size:17px;font-weight:bold;color:#000000;letter-spacing:.04em;margin-bottom:10px">&#128336; RESERVE — '+seat.confirmedReserve.length+' in &middot; '+seat.pendingReserve.length+' pending'+(seat.sessionWaitlist.length>0?' &middot; '+seat.sessionWaitlist.length+' waitlisted':'')+'</div>';
+  if(D.reserve.length===0) html+='<div style="font-size:16px;color:#2a8080;padding:8px">No reserve members.</div>';
+  D.reserve.forEach(function(m){
+    var status=session.rsvps[m.id]?session.rsvps[m.id].status:"pending";
+    var promoted=seat.confirmedReserve.find(function(x){return x.id===m.id;});
+    var waitPos=seat.sessionWaitlist.findIndex(function(x){return x.id===m.id;});
+    var isWaitlisted=waitPos>=0;
+    html+='<div class="rsvp-row'+(promoted?" promoted":isWaitlisted?" waitlisted":"")+'">';
+    html+='<div class="rsvp-avatar-sm mem-avatar wait" style="font-size:16px">'+m.name[0]+'</div>';
+    html+='<div style="flex:1">';
+    html+='<span style="font-size:18px;color:#000000;font-weight:bold">'+m.name+'</span>';
+    if(promoted) html+='<span class="badge-in" style="font-size:16px">&#10003; IN</span>';
+    if(isWaitlisted) html+='<span style="font-size:16px;color:#1a1a1a;margin-left:6px">&#9203; Waitlist #'+(waitPos+1)+'</span>';
+    html+='</div>';
+    if(seat.full&&!promoted&&!isWaitlisted){
+      html+='<button class="btn-yes" style="font-size:16px" data-sid="'+session.id+'" data-mid="'+m.id+'" onclick="setRSVP(this.dataset.sid,this.dataset.mid,\'waitlisted\')">+ Waitlist</button>';
+    } else {
+      html+='<button class="btn-yes'+(status==="yes"?" on":"")+'" style="font-size:16px" data-sid="'+session.id+'" data-mid="'+m.id+'" onclick="setRSVP(this.dataset.sid,this.dataset.mid,\'yes\')">&#10003; Yes</button>';
+    }
+    html+='<button class="btn-no'+(status==="no"?" on":"")+'" style="font-size:16px" data-sid="'+session.id+'" data-mid="'+m.id+'" onclick="setRSVP(this.dataset.sid,this.dataset.mid,\'no\')">&#10005; No</button>';
+    html+='</div>';
+  });
+
+  // Session waitlist
+  if(seat.sessionWaitlist.length>0){
+    html+='<div style="background:#e4f6fc;border:1px solid #e2ffff;border-radius:8px;padding:12px 14px;margin-top:8px">';
+    html+='<div style="font-size:16px;color:#1a1a1a;margin-bottom:8px">&#9203; Session Waitlist ('+seat.sessionWaitlist.length+')</div>';
+    seat.sessionWaitlist.forEach(function(m,i){
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #d2f8ff">';
+      html+='<span style="color:#2a7070;width:22px;font-size:16px">#'+(i+1)+'</span>';
+      html+='<span style="flex:1;color:#000000;font-size:18px;font-weight:bold">'+m.name+'</span>';
+      html+='<button class="btn-no" style="font-size:16px" data-sid="'+session.id+'" data-mid="'+m.id+'" onclick="setRSVP(this.dataset.sid,this.dataset.mid,\'no\')">Remove</button>';
+      html+='</div>';
+    });
+    html+='<div style="font-size:16px;color:#2a7070;margin-top:8px">Auto-promoted when a spot opens</div>';
+    html+='</div>';
+  }
+
+  html+='<div style="margin-top:20px"><button class="btn-danger" style="font-size:16px" data-sid="'+session.id+'" onclick="if(confirm(\'Delete this session?\'))deleteSession(this.dataset.sid)">Delete This Session</button></div>';
+
+  main.innerHTML=html;
+}
+function renderMembers(main){
+  if(!membersUnlocked){main.innerHTML=renderPasscodeScreen();return;}
+
+  function memberRow(m,tier){
+    var yesCount=tier==="core"
+      ? D.sessions.filter(function(s){var r=s.rsvps[m.id];return !r||r.status==="yes";}).length
+      : D.sessions.filter(function(s){return s.rsvps[m.id]&&s.rsvps[m.id].status==="yes";}).length;
+    var isOpen=openDots[m.id];
+    var isEditing=editingMemberId===m.id;
+    var avatarClass=tier==="core"?"mem-avatar reg":"mem-avatar wait";
+    var nameColor="#000000";
+
+    var row='<div class="mem-row">';
+    row+='<div class="mem-row-main">';
+    row+='<div class="'+avatarClass+'" style="font-size:16px">'+m.name[0]+'</div>';
+    row+='<div style="flex:1">';
+    row+='<div class="mem-name" style="color:'+nameColor+';font-size:17px">'+m.name+'</div>';
+    if(m.email) row+='<div class="mem-email" style="color:#1a1a1a;font-size:16px">&#9993; '+m.email+'</div>';
+    if(m.phone) row+='<div class="mem-email" style="color:#1a1a1a;font-size:16px">&#128222; '+m.phone+'</div>';
+    row+='<div class="mem-email" style="color:#1a1a1a;font-size:16px">&#127004; Set: '+(m.hasSet==="y"?"Yes":"No")+'</div>';
+    if(D.sessions.length) row+='<div class="mem-stat" style="color:#1a1a1a;font-size:16px">'+yesCount+'/'+D.sessions.length+' sessions going</div>';
+    row+='</div>';
+    row+='<button class="btn-dots" data-mid="'+m.id+'" onclick="var mid=this.dataset.mid;openDots[mid]=!openDots[mid];render()">&#8943;</button>';
+    row+='</div>';
+
+    if(isOpen && !isEditing){
+      row+='<div class="mem-row-actions">';
+      row+='<button class="btn-move" style="font-size:16px" data-id="'+m.id+'" data-tier="'+tier+'" onclick="editingMemberId=this.dataset.id;editMemberData=Object.assign({},D.core.concat(D.reserve).find(function(x){return x.id===this.dataset.id;},this));openDots[this.dataset.id]=true;render()">&#9998; Edit</button>';
+      row+='<button class="btn-move" style="font-size:16px" data-id="'+m.id+'" data-tier="'+tier+'" onclick="moveTier(this.dataset.id,this.dataset.tier)">&#8594; '+(tier==="core"?"Reserve":"Core")+'</button>';
+      row+='<button class="btn-remove" style="font-size:16px" data-id="'+m.id+'" data-tier="'+tier+'" onclick="removeMember(this.dataset.id,this.dataset.tier)">Remove</button>';
+      row+='</div>';
+    }
+
+    if(isEditing){
+      row+='<div style="padding:10px 12px 14px;border-top:1px solid var(--border2)">';
+      row+='<div class="field" style="margin-bottom:8px"><label style="font-size:16px">NAME</label>';
+      row+='<input type="text" value="'+editMemberData.name+'" oninput="editMemberData.name=this.value" style="font-size:16px;padding:8px 10px;width:100%;background:#edfafa;border:1px solid var(--border);border-radius:6px;color:#222222"></div>';
+      row+='<div class="field" style="margin-bottom:8px"><label style="font-size:16px">EMAIL</label>';
+      row+='<input type="email" value="'+(editMemberData.email||"")+'" oninput="editMemberData.email=this.value" style="font-size:16px;padding:8px 10px;width:100%;background:#edfafa;border:1px solid var(--border);border-radius:6px;color:#222222"></div>';
+      row+='<div class="field" style="margin-bottom:8px"><label style="font-size:16px">PHONE</label>';
+      row+='<input type="tel" value="'+(editMemberData.phone||"")+'" oninput="editMemberData.phone=this.value" style="font-size:16px;padding:8px 10px;width:100%;background:#edfafa;border:1px solid var(--border);border-radius:6px;color:#222222"></div>';
+      row+='<div class="field" style="margin-bottom:12px"><label style="font-size:16px">OWNS A MAHJONG SET?</label>';
+      row+='<div style="display:flex;gap:0;border-radius:6px;overflow:hidden;border:1px solid var(--border)">';
+      row+='<button style="flex:1;padding:8px 0;font-size:16px;font-family:Georgia,serif;cursor:pointer;border:none;background:'+(editMemberData.hasSet==="y"?"var(--gold)":"transparent")+';color:'+(editMemberData.hasSet==="y"?"#d2f0f0":"var(--muted)")+'" onclick="editMemberData.hasSet=&quot;y&quot;;render()">&#127004; Yes</button>';
+      row+='<button style="flex:1;padding:8px 0;font-size:16px;font-family:Georgia,serif;cursor:pointer;border:none;background:'+(editMemberData.hasSet!=="y"?"var(--gold)":"transparent")+';color:'+(editMemberData.hasSet!=="y"?"#d2f0f0":"var(--muted)")+'" onclick="editMemberData.hasSet=&quot;n&quot;;render()">&#10005; No</button>';
+      row+='</div></div>';
+      row+='<div style="display:flex;gap:10px">';
+      row+='<button class="btn-gold" style="flex:1;font-size:16px;padding:10px 0" data-id="'+m.id+'" data-tier="'+tier+'" onclick="saveMemberEdit(this.dataset.id,this.dataset.tier)">Save</button>';
+      row+='<button class="btn-ghost" style="flex:1;font-size:16px;padding:10px 0" onclick="editingMemberId=null;editMemberData=null;render()">Cancel</button>';
+      row+='</div>';
+      row+='</div>';
+    }
+
+    row+='</div>';
+    return row;
+  }
+
+  var html='<div class="flex gap8 mb16" style="flex-wrap:wrap">';
+  html+='<button class="btn-gold btn-sm" style="font-size:16px" onclick="showAddMember=!showAddMember;render()">+ Add Member</button>';
+  html+='<button class="btn-ghost btn-sm" style="font-size:16px" onclick="showImport=!showImport;render()">&#128194; Import CSV</button>';
+  html+='<div style="margin-left:auto;display:flex;align-items:center;gap:8px">';
+  html+='<span style="font-size:16px;color:#1a1a1a">'+D.core.length+' core &middot; '+D.reserve.length+' reserve</span>';
+  html+='<button class="btn-ghost btn-sm" style="font-size:16px" onclick="lockMembers()">&#128274; Lock</button>';
+  html+='</div></div>';
+
+  if(showImport){
+    var existing=[...D.core,...D.reserve].map(function(m){return m.name.toLowerCase();});
+    html+='<div class="card">';
+    html+='<div style="font-size:18px;color:var(--gold);font-weight:bold;margin-bottom:10px">Import from CSV</div>';
+    html+='<div style="font-size:16px;color:#555555;margin-bottom:12px;line-height:1.7">CSV needs a <strong style="color:#333333">Name</strong> column and optionally <strong style="color:#333333">Email</strong>, <strong style="color:#333333">Phone</strong>, and <strong style="color:#333333">Set</strong> (y/n) columns.</div>';
+    html+='<div class="tier-toggle">';
+    html+='<button class="tier-btn'+(importTier==="regular"?" active":"")+'" onclick="importTier=&quot;regular&quot;;render()">&#11088; Core</button>';
+    html+='<button class="tier-btn'+(importTier==="waitlist"?" active":"")+'" onclick="importTier=&quot;waitlist&quot;;render()">&#128336; Reserve</button>';
+    html+='</div>';
+    html+='<label style="display:block;background:#edfafa;border:2px dashed #2a7070;border-radius:8px;text-align:center;padding:20px 0;color:#333333;font-size:17px;cursor:pointer;margin-bottom:10px">&#128193; Choose CSV file<input type="file" accept=".csv" onchange="handleCSV(event)" style="display:none"></label>';
+    if(importPreview){
+      var skip=importPreview.filter(function(m){return existing.includes(m.name.toLowerCase());}).length;
+      html+='<div style="font-size:16px;color:var(--green);margin-bottom:8px">'+importPreview.length+' found — '+skip+' will be skipped</div>';
+      html+='<div class="import-preview">';
+      importPreview.forEach(function(m){
+        var ex=existing.includes(m.name.toLowerCase());
+        html+='<div class="import-row '+(ex?"skip":"ok")+'">';
+        html+='<span style="flex:1;font-size:16px">'+m.name+'</span>';
+        if(m.email) html+='<span style="color:#2a9090;font-size:16px">'+m.email+'</span>';
+        if(m.phone) html+='<span style="color:#2a9090;font-size:16px">'+m.phone+'</span>';
+        html+='<span style="color:#4ab0b0;font-size:16px">Set:'+(m.hasSet==="y"?"Y":"N")+'</span>';
+        if(ex) html+='<span style="color:#2a7070;font-size:16px">skip</span>';
+        html+='</div>';
+      });
+      html+='</div>';
+      html+='<div class="form-row">';
+      html+='<button class="btn-gold" style="font-size:16px" onclick="confirmImport()">Import as '+(importTier==="regular"?"Core":"Reserve")+'</button>';
+      html+='<button class="btn-ghost" style="font-size:16px" onclick="importPreview=null;showImport=false;render()">Cancel</button>';
+      html+='</div>';
+    } else {
+      html+='<button class="btn-ghost" style="width:100%;font-size:16px" onclick="showImport=false;render()">Cancel</button>';
+    }
+    html+='</div>';
+  }
+
+  if(showAddMember){
+    html+='<div class="card">';
+    html+='<div class="tier-toggle">';
+    html+='<button class="tier-btn'+(newMemberTier==="regular"?" active":"")+'" onclick="newMemberTier=&quot;regular&quot;;render()">&#11088; Core</button>';
+    html+='<button class="tier-btn'+(newMemberTier==="waitlist"?" active":"")+'" onclick="newMemberTier=&quot;waitlist&quot;;render()">&#128336; Reserve</button>';
+    html+='</div>';
+    html+='<div class="field"><label>NAME</label><input type="text" value="'+newMember.name+'" oninput="newMember.name=this.value" placeholder="Full name"></div>';
+    html+='<div class="field"><label>EMAIL</label><input type="email" value="'+newMember.email+'" oninput="newMember.email=this.value" placeholder="for notifications"></div>';
+    html+='<div class="field"><label>PHONE</label><input type="tel" value="'+newMember.phone+'" oninput="newMember.phone=this.value" placeholder="optional"></div>';
+    html+='<div class="field"><label>OWNS A MAHJONG SET?</label>';
+    html+='<div class="tier-toggle" style="margin-bottom:0">';
+    html+='<button class="tier-btn'+(newMember.hasSet==="y"?" active":"")+'" onclick="newMember.hasSet=&quot;y&quot;;render()">&#127004; Yes</button>';
+    html+='<button class="tier-btn'+(newMember.hasSet!=="y"?" active":"")+'" onclick="newMember.hasSet=&quot;n&quot;;render()">&#10005; No</button>';
+    html+='</div></div>';
+    html+='<div class="form-row"><button class="btn-gold" onclick="addMember()">Add</button><button class="btn-ghost" onclick="showAddMember=false;render()">Cancel</button></div>';
+    html+='</div>';
+  }
+
+  html+='<div class="sec-head" style="color:#1a1a1a;font-size:16px;letter-spacing:.1em;margin-bottom:10px">&#11088; CORE — default &#10003; Going</div>';
+  if(D.core.length===0) html+='<div style="font-size:16px;color:#2a8080;padding:8px">No core members yet.</div>';
+  D.core.forEach(function(m){ html+=memberRow(m,"core"); });
+
+  html+='<div class="sec-head" style="color:#1a1a1a;font-size:16px;letter-spacing:.1em;margin-bottom:10px;margin-top:20px">&#128336; RESERVE — RSVP to claim spots</div>';
+  if(D.reserve.length===0) html+='<div style="font-size:16px;color:#2a8080;padding:8px">No reserve members yet.</div>';
+  D.reserve.forEach(function(m){ html+=memberRow(m,"reserve"); });
+
+  main.innerHTML=html;
+}
+
+
+function renderEmail(main){
+  var html="";
+  var upcoming=D.sessions.filter(isUpcoming);
+  html+="<div style='margin-bottom:18px'><div style='font-size:17px;font-weight:bold;color:#000;margin-bottom:8px'>Select Session</div>";
+  html+="<select style='width:100%;font-size:16px;padding:10px;border:2px solid #88c8c8;border-radius:6px;color:#000;background:white' onchange='emailSessionId=this.value?Number(this.value):null;render()'>";
+  html+="<option value=''>- Choose a session -</option>";
+  upcoming.forEach(function(s){
+    var sel=(emailSessionId&&s.id==emailSessionId)?" selected":"";
+    html+="<option value='"+s.id+"'"+sel+">"+toDateStr(s.date)+" - "+s.time+"</option>";
+  });
+  html+="</select></div>";
+  if(!emailSessionId){
+    html+="<div style='text-align:center;padding:40px;color:#888;font-size:16px'>Select a session above</div>";
+    main.innerHTML=html; return;
+  }
+  var session=D.sessions.find(function(s){return s.id==emailSessionId;});
+  if(!session){main.innerHTML=html;return;}
+  var seat=getSeats(session);
+  var days=daysUntil(session.date);
+  var sentLabel=session.finalEmailSent?" (Sent)":"";
+  // Summary
+  html+="<div style='background:#eaf8f8;border:1px solid #88c8c8;border-radius:10px;padding:14px;margin-bottom:18px'>";
+  html+="<div style='font-size:17px;font-weight:bold;color:#000'>"+toDateStr(session.date)+"</div>";
+  html+="<div style='font-size:15px;color:#333'>"+session.time+(session.location?" - "+session.location:"")+"</div>";
+  html+="<div style='font-size:15px;color:#333;margin-top:4px'>"+seat.total+"/"+MAX_PLAYERS+" confirmed - "+seat.spots+" open</div>";
+  html+="</div>";
+  // Buttons - use data-type attribute to avoid quote issues
+  html+="<div style='margin-bottom:12px'><div style='font-size:16px;font-weight:bold;color:#000;margin-bottom:6px'>4-Day Reminder"+(days===4?" - DUE TODAY":"")+"</div>";
+  html+="<button data-etype='4day' onclick='sendEmailType(this.dataset.etype)' style='width:100%;padding:14px;background:#1a7878;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-family:Georgia,serif'>Send 4-Day Reminder</button></div>";
+  html+="<div style='margin-bottom:12px'><div style='font-size:16px;font-weight:bold;color:#000;margin-bottom:6px'>Final Reminder - Day Before"+(days===1?" - DUE TODAY":"")+sentLabel+"</div>";
+  html+="<button data-etype='1day' onclick='sendEmailType(this.dataset.etype)' style='width:100%;padding:14px;background:#1a7878;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-family:Georgia,serif'>Send Final Reminder</button></div>";
+  if(seat.spots>0&&D.reserve.length>0){
+    html+="<div style='margin-bottom:12px'><div style='font-size:16px;font-weight:bold;color:#000;margin-bottom:6px'>"+seat.spots+" spot"+(seat.spots!==1?"s":"")+" open - notify Reserve</div>";
+    html+="<button data-etype='notify' onclick='sendEmailType(this.dataset.etype)' style='width:100%;padding:14px;background:#0a6035;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-family:Georgia,serif'>Notify Reserve Members</button></div>";
+  }
+  if(showRevisionAlert===session.id){
+    html+="<div style='background:#fff0f4;border:2px solid #b02848;border-radius:8px;padding:14px;margin-bottom:14px'>";
+    html+="<div style='font-size:15px;color:#b02848;font-weight:bold;margin-bottom:8px'>Player list changed after final email sent</div>";
+    html+="<button data-etype='revision' onclick='sendEmailType(this.dataset.etype)' style='width:100%;padding:12px;background:#b02848;color:white;border:none;border-radius:6px;font-size:15px;cursor:pointer;font-family:Georgia,serif'>Send Revision Email</button></div>";
+  }
+  main.innerHTML=html;
+}
+
+function sendEmailType(type){
+  var session=D.sessions.find(function(s){return s.id==emailSessionId;});
+  if(!session){alert("Please select a session first.");return;}
+  var url="";
+  var onSent=null;
+  if(type==="4day") url=build4DayEmail(session);
+  else if(type==="1day"){url=build1DayEmail(session);onSent=function(){markFinalSent(session.id);};}
+  else if(type==="notify") url=buildNotifyEmail(session);
+  else if(type==="revision"){url=buildRevisionEmail(session);onSent=function(){showRevisionAlert=null;render();};}
+  if(url) showEmailComposer(url,onSent);
+}
+
+
+function showEmailComposer(url, onSent) {
+  if(!url) { alert("No email data. Please select a session first."); return; }
+  var qIdx = url.indexOf("?");
+  var params = new URLSearchParams(url.substring(qIdx+1));
+  var bcc = params.get("bcc") || "";
+  var subject = decodeURIComponent(params.get("subject") || "");
+  var body = decodeURIComponent(params.get("body") || "");
+  var emails = bcc.split(",").filter(Boolean);
+
+  var overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:20px;box-sizing:border-box;overflow-y:auto";
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  var box = document.createElement("div");
+  box.style.cssText = "background:white;border-radius:12px;padding:24px;max-width:600px;width:100%;margin:auto;margin-top:20px";
+
+  var title = document.createElement("div");
+  title.style.cssText = "font-size:20px;font-weight:bold;color:#0a3030;margin-bottom:12px";
+  title.textContent = "Send Email";
+  box.appendChild(title);
+
+  var instr = document.createElement("div");
+  instr.style.cssText = "background:#eaf8f8;border-radius:8px;padding:12px;font-size:14px;color:#333;margin-bottom:16px;line-height:1.7";
+  instr.innerHTML = "<strong>Steps:</strong><br>1. Tap Copy Addresses &rarr; paste into BCC in Gmail<br>2. Tap Open Gmail &rarr; subject &amp; body are pre-filled<br>3. Paste addresses into BCC field &rarr; Send<br>4. Come back &rarr; tap Mark as Sent";
+  box.appendChild(instr);
+
+  // BCC addresses
+  var lbl1 = document.createElement("div");
+  lbl1.style.cssText = "font-size:14px;font-weight:bold;color:#0a3030;margin-bottom:4px";
+  lbl1.textContent = "BCC: " + emails.length + " members";
+  box.appendChild(lbl1);
+
+  var ta = document.createElement("textarea");
+  ta.value = emails.join(", ");
+  ta.readOnly = true;
+  ta.style.cssText = "width:100%;height:80px;border:2px solid #88c8c8;border-radius:6px;padding:8px;font-size:13px;color:#000;box-sizing:border-box;font-family:monospace;margin-bottom:6px";
+  ta.onclick = function(){ this.select(); };
+  box.appendChild(ta);
+
+  function makeBtn(text, bg, fn) {
+    var b = document.createElement("button");
+    b.textContent = text;
+    b.style.cssText = "padding:9px 16px;background:"+bg+";color:white;border:none;border-radius:6px;font-size:14px;cursor:pointer;font-family:Georgia,serif;margin-bottom:14px;margin-right:8px";
+    b.onclick = fn;
+    return b;
+  }
+
+  box.appendChild(makeBtn("Copy Addresses", "#1a7878", function(){
+    ta.select();
+    try{ navigator.clipboard.writeText(ta.value).then(function(){ ta.style.background="#eaf8f8"; setTimeout(function(){ ta.style.background=""; },1500); }); }
+    catch(e){ document.execCommand("copy"); }
+  }));
+
+  // Subject
+  var lbl2 = document.createElement("div");
+  lbl2.style.cssText = "font-size:14px;font-weight:bold;color:#0a3030;margin-bottom:4px";
+  lbl2.textContent = "Subject:";
+  box.appendChild(lbl2);
+
+  var si = document.createElement("input");
+  si.type = "text"; si.value = subject; si.readOnly = true;
+  si.style.cssText = "width:100%;border:2px solid #88c8c8;border-radius:6px;padding:8px;font-size:14px;color:#000;box-sizing:border-box;margin-bottom:6px";
+  si.onclick = function(){ this.select(); };
+  box.appendChild(si);
+
+  // Body
+  var lbl3 = document.createElement("div");
+  lbl3.style.cssText = "font-size:14px;font-weight:bold;color:#0a3030;margin-bottom:4px";
+  lbl3.textContent = "Email body:";
+  box.appendChild(lbl3);
+
+  var ba = document.createElement("textarea");
+  ba.value = body; ba.readOnly = true;
+  ba.style.cssText = "width:100%;height:200px;border:2px solid #88c8c8;border-radius:6px;padding:8px;font-size:14px;color:#000;box-sizing:border-box;font-family:Arial,sans-serif;margin-bottom:6px";
+  ba.onclick = function(){ this.select(); };
+  box.appendChild(ba);
+
+  box.appendChild(makeBtn("Copy Body", "#1a7878", function(){
+    ba.select();
+    try{ navigator.clipboard.writeText(ba.value).then(function(){ ba.style.background="#eaf8f8"; setTimeout(function(){ ba.style.background=""; },1500); }); }
+    catch(e){ document.execCommand("copy"); }
+  }));
+
+  // Open Gmail
+  var gmailBtn = document.createElement("button");
+  gmailBtn.textContent = "Open Gmail";
+  gmailBtn.style.cssText = "display:block;width:100%;padding:12px;background:#0a6035;color:white;border:none;border-radius:6px;font-size:16px;cursor:pointer;font-family:Georgia,serif;margin-bottom:10px;margin-top:4px";
+  gmailBtn.onclick = function(){
+    window.open("https://mail.google.com/mail/?view=cm&fs=1&su="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body), "_blank");
+  };
+  box.appendChild(gmailBtn);
+
+  // Mark as sent + close
+  var doneBtn = document.createElement("button");
+  doneBtn.textContent = "Mark as Sent & Close";
+  doneBtn.style.cssText = "display:block;width:100%;padding:12px;background:#1a7878;color:white;border:none;border-radius:6px;font-size:16px;cursor:pointer;font-family:Georgia,serif;margin-bottom:10px";
+  doneBtn.onclick = function(){ if(onSent) onSent(); overlay.remove(); };
+  box.appendChild(doneBtn);
+
+  var closeBtn = document.createElement("button");
+  closeBtn.textContent = "Close";
+  closeBtn.style.cssText = "display:block;width:100%;padding:12px;background:#eee;color:#333;border:none;border-radius:6px;font-size:16px;cursor:pointer;font-family:Georgia,serif";
+  closeBtn.onclick = function(){ overlay.remove(); };
+  box.appendChild(closeBtn);
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
+
+function switchView(v){
+  view=v; selId=null; showNew=false; showRecurring=false;
+  showAddMember=false; showImport=false; showEdit=false;
+  render();
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+loadData();
+persist=!!localStorage.getItem(STORAGE_KEY);
+if(persist){
+  document.getElementById("btn-persist").className="btn-persist on";
+  document.getElementById("btn-persist").textContent="💾 Saving";
+}
+setInterval(()=>{tileIdx=(tileIdx+1)%TILES.length;document.getElementById("tile-icon").textContent=TILES[tileIdx];},2800);
+
+// Connect to Firebase - wait until Firebase SDK and config are ready
+onFirebaseReady(function(){
+  if(typeof window.fbInit !== 'undefined' && window.db){
+  window.fbInit(D, function(cloudData){
+    // Migrate old field names if needed
+    if(cloudData.regulars && !cloudData.core) cloudData.core = cloudData.regulars;
+    if(cloudData.waitlist && !cloudData.reserve) cloudData.reserve = cloudData.waitlist;
+    // Ensure required arrays exist
+    if(!cloudData.core) cloudData.core = [];
+    if(!cloudData.reserve) cloudData.reserve = [];
+    if(!cloudData.sessions) cloudData.sessions = [];
+    // Merge cloud data into local state
+    D = cloudData;
+    // Also save to localStorage for offline
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(D)); }catch{}
+    render();
+    // Update header to show connected
+    var sub = document.getElementById("hd-sub");
+    if(sub) sub.style.color = "#0a6035";
+  });
+  }
+  var sub2 = document.getElementById("hd-sub");
+  if(sub2){ sub2.textContent = sub2.textContent + " \u00b7 syncing..."; }
+});
+
+render();
+  </script>
+</body>
+</html>
