@@ -186,22 +186,22 @@ main{padding:18px 14px;max-width:560px;margin:0 auto}
   cursor:pointer;margin-bottom:8px;transition:border-color .15s}
 .sess-card:hover{border-color:var(--gold)}
 
-.sess-title{font-size:17.5px;font-weight:bold;color:var(--gold);margin-bottom:2px}
-.sess-sub{font-size:16px;color:#333333}
-.sess-loc{font-size:16px;color:#555555}
+.sess-title{font-size:17px;font-weight:bold;color:#000000;margin-bottom:3px}
+.sess-sub{font-size:15px;color:#333333;margin-bottom:2px}
+.sess-loc{font-size:14px;color:#555555}
 .sess-set{font-size:16px;color:var(--wait)}
 .sess-alert{font-size:16px;margin-top:3px}
 .bar{height:3px;border-radius:2px;background:#b0dede;margin-top:8px;overflow:hidden}
 .bar-fill{height:100%;border-radius:2px;background:var(--green);transition:width .4s}
 .bar-fill.full{background:var(--gold-lt)}
-.sess-count{font-size:23.8px;font-weight:bold;color:var(--green);text-align:right}
-.sess-count.full{color:var(--gold)}
+.sess-count{font-size:16px;font-weight:bold;color:#000000;text-align:right}
+.sess-count.full{color:#b02848;font-weight:bold}
 
 /* Seat bar (detail) */
 .seat-bar-wrap{margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)}
-.seat-bar{height:7px;border-radius:4px;background:#b0dede;overflow:hidden}
-.seat-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--green),var(--green-dk));transition:width .4s}
-.seat-bar-fill.full{background:var(--gold-lt)}
+.seat-bar{background:#b0d8d8;border-radius:99px;height:8px;overflow:hidden;margin-top:6px}
+.seat-bar-fill{background:#1a7878;height:8px;border-radius:99px;transition:width .3s}
+.seat-bar-fill.full{background:#b02848}
 
 /* Member rows */
 .mem-row{background:#f0fbfb;border-radius:8px;border:1px solid var(--border2);overflow:hidden;margin-bottom:5px}
@@ -703,7 +703,7 @@ function deleteSession(id){
   delBtn.textContent = "Delete";
   delBtn.style.cssText = "flex:1;padding:12px;background:#b02848;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-family:Georgia,serif";
   delBtn.onclick = function(){
-    if(inp.value === PASSCODE){
+    if(inp.value === "1016"){
       D.sessions = D.sessions.filter(function(s){ return s.id != id; });
       selId = null; view = "schedule";
       saveData(); render();
