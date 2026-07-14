@@ -676,37 +676,29 @@ function saveEditSession(){
   showEdit=false;saveData();render();toast("Session updated","success");
 }
 function deleteSession(id){
-  // Show password prompt before deleting
   var overlay = document.createElement("div");
   overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box";
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
-
   var box = document.createElement("div");
   box.style.cssText = "background:white;border-radius:12px;padding:24px;max-width:340px;width:100%;text-align:center";
-
   var title = document.createElement("div");
   title.style.cssText = "font-size:18px;font-weight:bold;color:#b02848;margin-bottom:8px";
   title.textContent = "Delete Session";
   box.appendChild(title);
-
   var sub = document.createElement("div");
   sub.style.cssText = "font-size:14px;color:#555;margin-bottom:16px";
   sub.textContent = "Enter passcode to confirm deletion.";
   box.appendChild(sub);
-
   var inp = document.createElement("input");
   inp.type = "password";
   inp.placeholder = "Passcode";
   inp.style.cssText = "width:100%;padding:10px;font-size:18px;border:2px solid #88c8c8;border-radius:8px;box-sizing:border-box;text-align:center;margin-bottom:8px;color:#000";
   box.appendChild(inp);
-
   var err = document.createElement("div");
   err.style.cssText = "font-size:14px;color:#b02848;margin-bottom:12px;min-height:20px";
   box.appendChild(err);
-
   var btns = document.createElement("div");
   btns.style.cssText = "display:flex;gap:10px";
-
   var delBtn = document.createElement("button");
   delBtn.textContent = "Delete";
   delBtn.style.cssText = "flex:1;padding:12px;background:#b02848;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-family:Georgia,serif";
@@ -723,12 +715,11 @@ function deleteSession(id){
       inp.focus();
     }
   };
-
+  inp.addEventListener("keydown", function(e){ if(e.key==="Enter") delBtn.click(); });
   var cancelBtn = document.createElement("button");
   cancelBtn.textContent = "Cancel";
   cancelBtn.style.cssText = "flex:1;padding:12px;background:#eee;color:#333;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-family:Georgia,serif";
   cancelBtn.onclick = function(){ overlay.remove(); };
-
   btns.appendChild(delBtn);
   btns.appendChild(cancelBtn);
   box.appendChild(btns);
@@ -1165,7 +1156,7 @@ function renderSession(main){
     html+='</div>';
   }
 
-  html+='<div style="margin-top:20px"><button class="btn-danger" style="font-size:16px" data-sid="'+session.id+'" onclick="if(confirm(\'Delete this session?\'))deleteSession(this.dataset.sid)">Delete This Session</button></div>';
+  html+='<div style="margin-top:20px"><button class="btn-danger" style="font-size:16px" data-sid="'+session.id+'" onclick="deleteSession(this.dataset.sid)">Delete This Session</button></div>';
 
   main.innerHTML=html;
 }
